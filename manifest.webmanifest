@@ -1,0 +1,31 @@
+{
+  "name": "Letzter Außenposten",
+  "short_name": "Außenposten",
+  "description": "Idle-Aufbauspiel: Waren herstellen, Außenposten ausbauen, nachts Zombies abwehren.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#17190f",
+  "theme_color": "#17190f",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
