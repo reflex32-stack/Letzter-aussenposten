@@ -36,22 +36,26 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 #hud{position:fixed;left:0;right:0;top:0;pointer-events:none;
   padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 0;display:flex;flex-direction:column;gap:8px;align-items:center}
-.top{width:100%;max-width:900px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;justify-content:space-between}
+.top{width:100%;max-width:900px;display:flex;flex-wrap:nowrap;gap:6px;align-items:stretch;justify-content:space-between}
 .left{display:flex;flex-direction:column;gap:6px;pointer-events:auto}
 .pill{pointer-events:auto;background:rgba(23,25,15,.86);border:1.5px solid var(--line);border-radius:10px;
   padding:6px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
-.money{font-family:var(--display);font-size:22px;color:var(--gold);letter-spacing:.5px;font-variant-numeric:tabular-nums;min-width:96px}
+.money{font-family:var(--display);font-size:20px;color:var(--gold);letter-spacing:.5px;font-variant-numeric:tabular-nums;min-width:0;padding:5px 10px;gap:6px}
+.money .lv{font-family:var(--body);font-size:11px;font-weight:700;color:var(--ok);letter-spacing:0;margin-left:2px;white-space:nowrap}
 .coin{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe69a,#e0a92a 60%,#9c6d10);box-shadow:0 0 0 2px #6e4c0b inset}
 .lvl{padding:4px 10px;gap:8px;font-size:12px;font-weight:700;color:var(--ok)}
 .xpbar{width:70px;height:5px;border-radius:3px;background:#2c3a1c;overflow:hidden}
 .xpbar i{display:block;height:100%;background:var(--ok);width:0}
-.job{flex-direction:column;align-items:flex-start;gap:3px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--bone);max-width:220px}
+.job{flex-direction:column;align-items:stretch;gap:3px;padding:4px 10px;font:600 11.5px var(--body);color:var(--bone);align-self:flex-start;text-align:left;cursor:pointer;border-radius:8px}
 .job b{color:var(--gold)}
 .job .xpbar{width:100%}
 .job .xpbar i{background:var(--gold)}
-.day{flex-direction:column;align-items:flex-start;gap:3px;padding:5px 12px}
-#dayLbl{font-family:var(--display);font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--sand)}
-#dayInfo{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.day{flex-direction:column;align-items:stretch;justify-content:center;gap:4px;padding:5px 10px;min-width:0;flex:1 1 auto;max-width:260px}
+.dayrow{display:flex;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden}
+.nightbtn{pointer-events:auto;border:1px solid #6a4a8a;background:#2a2238;color:#d8c8f0;border-radius:6px;padding:3px 8px;font:700 11px var(--body)}
+.nightbtn:active{transform:translateY(1px)}
+#dayLbl{font-family:var(--display);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--sand)}
+#dayInfo{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
 .wallbar{width:130px;height:6px;border-radius:3px;background:#3a2c22;overflow:hidden}
 .wallbar i{display:block;height:100%;width:100%;background:var(--danger);transition:width .2s}
 .topbtns{display:flex;gap:6px;pointer-events:auto}
@@ -61,8 +65,10 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .btn.dark{background:var(--panel2);color:var(--bone);box-shadow:0 3px 0 #0c0d07;border:1.5px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
 .btn .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle}
-#hint{pointer-events:none;max-width:min(520px,calc(100vw - 32px));text-align:center;font-size:14px;font-weight:600;
+#hint{pointer-events:auto;cursor:pointer;max-width:min(520px,calc(100vw - 32px));text-align:center;font-size:14px;font-weight:600;
   background:rgba(242,193,78,.94);color:#2a1f08;border-radius:8px;padding:7px 12px;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+#hint{transition:opacity .4s}
+#hint.gone{opacity:0}
 #hint.night{background:rgba(224,80,58,.95);color:#fff}
 #hint:empty{display:none}
 
@@ -105,15 +111,11 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .big{font-family:var(--display);font-size:34px;color:var(--gold);text-align:center}
 .row-end{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 @media (max-width:520px){
-  .top{display:grid;grid-template-columns:1fr auto;gap:6px}
-  .left{display:contents}
-  .money{grid-column:1;grid-row:1;justify-self:start;font-size:19px;min-width:80px}
-  .topbtns{grid-column:2;grid-row:1}
+  #hud{padding-left:8px;padding-right:8px;gap:6px}
+  .money{font-size:17px;padding:4px 8px}
+  .coin{width:15px;height:15px}
   .topbtns .btn{padding:7px 10px;font-size:13px}
-  .lvl{grid-column:1;grid-row:2;justify-self:start;align-self:start}
-  .day{grid-column:2;grid-row:2;padding:4px 10px}
   .wallbar{width:100%}
-  .job{grid-column:1 / -1;grid-row:3;max-width:none}
   #hint{font-size:12.5px;padding:5px 10px}
 }
 .wlist{display:flex;flex-direction:column;gap:10px}
@@ -135,14 +137,11 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 <div id="game"><canvas id="cv" aria-label="Spielfeld"></canvas></div>
 <div id="hud">
   <div class="top">
-    <div class="left">
-      <div class="pill money" aria-label="Geld"><span class="coin"></span><span id="money">0</span></div>
-      <div class="pill lvl"><span id="pLvl">Lv 1</span><div class="xpbar"><i id="pXp"></i></div></div>
-      <div class="pill job" id="jobPill" hidden><span id="jobTxt"></span><div class="xpbar"><i id="jobBar"></i></div></div>
-    </div>
-    <div class="pill day"><span id="dayLbl">Tag 1</span><span id="dayInfo"></span><div class="wallbar" id="wallBar" hidden><i id="wallFill"></i></div></div>
-    <div class="topbtns"><button class="btn dark" id="btnSound" aria-pressed="true">Ton an</button><button class="btn" id="btnMenu">Menü<span class="dot" id="menuDot" hidden></span></button></div>
+    <div class="pill money" aria-label="Geld"><span class="coin"></span><span id="money">0</span><span class="lv" id="pLvl">Lv 1</span></div>
+    <div class="pill day"><div class="dayrow"><span id="dayLbl">Tag 1</span><span id="dayInfo"></span></div><button class="nightbtn" id="btnNight">Nacht starten</button><div class="wallbar" id="wallBar" hidden><i id="wallFill"></i></div></div>
+    <div class="topbtns"><button class="btn" id="btnMenu">Menü<span class="dot" id="menuDot" hidden></span></button></div>
   </div>
+  <button class="pill job" id="jobPill" hidden><span id="jobTxt"></span><div class="xpbar"><i id="jobBar"></i></div></button>
   <div id="hint"></div>
 </div>
 <div id="toast"></div>
@@ -174,6 +173,14 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <p id="wText">Deine Arbeiter haben weitergearbeitet, während du weg warst.</p>
     <div class="big" id="wAmount">$0</div>
     <button class="btn" id="wOk">Einsammeln</button>
+  </div>
+</div>
+
+<div class="modal" id="news" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="nTitle">
+    <h2 id="nTitle">Neu in v1.1</h2>
+    <ul id="nBody" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;color:var(--muted);font-size:14px;line-height:1.45"></ul>
+    <button class="btn" id="nOk">Weiter spielen</button>
   </div>
 </div>
 
@@ -460,7 +467,7 @@ function freshMap(id){
   const md=MAPDEFS[id];
   const s={id,money:md.startMoney,lifetime:0,day:1,phase:'day',phaseT:0,mapTime:0,nights:0,wallHp:0,last:Date.now(),lager:1,guards:0,cashiers:0,
     contract:null,contractCd:45,bossWins:0,inst:{},lv:{},lanes:[],tur:{},workers:[],up:{},stock:{},tables:[],
-    flags:{intro:0,made:0,deposited:0,sold:0,collected:0,cleaned:0,mapDone:0},belts:{}};
+    flags:{intro:0,made:0,deposited:0,sold:0,collected:0,cleaned:0,mapDone:0},belts:{},staff:[]};
   md.inst.forEach(i=>s.inst[i.id]={unlocked:i.cost===0,paid:0});
   for(const k in md.sty) s.lv[k]=1;
   for(const g in GOODS) s.stock[g]=0;
@@ -478,6 +485,7 @@ function fixMap(o,id){ // alten/unvollständigen Stand auffüllen
   if(Array.isArray(o.lanes)) o.lanes.forEach((v,i)=>{ if(f.lanes[i]) Object.assign(f.lanes[i],v); });
   if(Array.isArray(o.tables)) o.tables.forEach((v,i)=>{ if(f.tables[i]) Object.assign(f.tables[i],v); });
   if(G.ach) delete G.ach.belt;
+  if(Array.isArray(o.staff)) f.staff=o.staff.map(w=>({lvl:w.lvl||1,xp:w.xp||0}));
   if(Array.isArray(o.workers)) f.workers=o.workers.map(w=>({lvl:w.lvl||1,xp:w.xp||0,assign:w.assign||null,robot:!!w.robot}));
   f.id=id; return f;
 }
@@ -485,15 +493,17 @@ let G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:fals
 function load(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
-    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
+    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.seenVer=o.seenVer||'1.0'; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
       for(const id in (o.maps||{})) if(MAPDEFS[id]) G.maps[id]=fixMap(o.maps[id],id); }
     else { const old=localStorage.getItem(OLD_KEY);
       if(old){ const o=JSON.parse(old); G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.maps.farm=fixMap(o,'farm'); } }
   }catch(e){}
   if(!G.maps[G.cur]) G.maps[G.cur]=freshMap(G.cur);
+  if(!G.gup){ G.gup={magnet:0,dmg:0,rate:0,guard:0}; // Umstellung: höchste Stufe aller Maps übernehmen
+    for(const id in G.maps){ const u=G.maps[id].up||{}; for(const k of GLOBAL_UPG) G.gup[k]=Math.max(G.gup[k],u[k]||0); } }
   S=G.maps[G.cur];
 }
-function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
+function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),seenVer:G.seenVer||NEWS_VER,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
   for(const id in G.maps){ const m=Object.assign({},G.maps[id]); delete m.player; o.maps[id]=m; } return o; }
 function save(){ S.last=Date.now(); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saveObj())); }catch(e){} }
 // ---------- Spielstand-Code (zwischen Geräten übertragen) ----------
@@ -521,7 +531,8 @@ const chainOf=g=>{const t=PRODUCER[g];return STY[t].inp.flatMap(chainOf).concat(
 const chainReady=g=>chainOf(g).every(typeBuilt);
 const multiChain=g=>chainOf(g).some(t=>STY[t].inp.length>1);
 const bonusMul=()=>(1+0.1*G.stars)*(1+0.02*Object.keys(G.ach).length);
-const goodPrice=g=>GOODS[g].price*(1+0.25*(S.lv[PRODUCER[g]]-1))*bonusMul();
+const priceAt=(g,l)=>GOODS[g].price*(1+0.25*(l-1))*bonusMul();
+const goodPrice=g=>priceAt(g,S.lv[PRODUCER[g]]);
 function impSrc(t){ const imp=STY[t].imp; if(!imp) return null; return typeof imp==='string'?{map:'farm',type:imp}:imp; }
 function farmBoost(t){ const src=impSrc(t); if(!src) return 1; const f=G.maps[src.map]; return 1+0.12*((f?f.lv[src.type]:1)-1); }
 const prodTime=t=>Math.max(0.3,STY[t].time*Math.pow(0.9,S.lv[t]-1)/farmBoost(t));
@@ -538,19 +549,24 @@ const cashierCost=()=>Math.round(300*Math.pow(4,S.cashiers)*(MD.num>1?2:1));
 const guardCost=()=>Math.round(220*Math.pow(2.5,S.guards)*(MD.num>1?1.5:1));
 const lagerCap=()=>8+4*(S.lager-1);
 const lagerCost=()=>Math.round(80*Math.pow(1.7,S.lager-1)*(MD.num>1?2:1));
-const magnetR=()=>50+10*S.up.magnet;
-const gunDmg=()=>12*Math.pow(1.35,S.up.dmg);
-const gunRate=()=>2*(1+0.12*S.up.rate);
-const guardDmg=()=>8*Math.pow(1.3,S.up.guard);
+const GLOBAL_UPG=['magnet','dmg','rate','guard'];
+const isGlobalUpg=id=>GLOBAL_UPG.includes(id);
+function gup(){ if(!G.gup) G.gup={magnet:0,dmg:0,rate:0,guard:0}; return G.gup; }
+const upLv=id=>isGlobalUpg(id)?(gup()[id]||0):(S.up[id]||0);
+function upInc(id){ if(isGlobalUpg(id)) gup()[id]=(gup()[id]||0)+1; else S.up[id]++; }
+const magnetR=()=>50+10*upLv('magnet');
+const gunDmg=()=>12*Math.pow(1.35,upLv('dmg'));
+const gunRate=()=>2*(1+0.12*upLv('rate'));
+const guardDmg=()=>8*Math.pow(1.3,upLv('guard'));
 const wireDps=()=>S.up.wire?1.5*S.up.wire*Math.pow(1.12,S.up.wire):0;
 const wireSlow=()=>1-Math.min(0.5,0.07*S.up.wire);
 const repairRate=()=>10+6*S.up.wall;
-const upgCost=u=>Math.round(u.base*Math.pow(u.mul,S.up[u.id]));
+const upgCost=u=>Math.round(u.base*Math.pow(u.mul,upLv(u.id)));
 const wallMax=()=>250+150*S.up.wall;
 const turretDmg=l=>9*Math.pow(1.35,l-1);
 const turretRate=l=>1.3*(1+0.05*(l-1));
 const turUpCost=t=>Math.round(t.up*Math.pow(1.42,S.tur[t.id].level-1));
-const DAY_LEN=100, NIGHT_MAX=55;
+const DAY_LEN=180, NIGHT_MAX=55;
 const isBossNight=d=>d%5===0;
 const zCount=d=>Math.round(Math.min(24,2+Math.floor(d*0.9))*(MD.horde||1));
 const zHp=d=>13*(1+0.13*(d-1))*Math.pow(1.035,d-1);
@@ -597,8 +613,9 @@ function buildRuntime(){
   LR=LANES.map(()=>({queue:[]})); RES={}; customers=[]; zombies=[]; tracers=[]; parts=[]; floats=[];
   workers=S.workers.map((w,i)=>makeWorker(i));
   guards=[]; for(let i=0;i<S.guards;i++) guards.push(makeGuard(i));
+  if(!S.staff) S.staff=[]; while(S.staff.length<S.cashiers) S.staff.push({lvl:1,xp:0});
   cashiers=[]; for(let i=0;i<S.cashiers;i++) cashiers.push(makeCashier(i));
-  P.x=500; P.y=500; P.carry=[]; spawnT=1; buildBelts(); globs=[];
+  P.x=500; P.y=500; P.carry=[]; spawnT=1; buildBelts(); globs=[]; rateAcc={t:0,l:S.lifetime};
   if(!S.wallHp) S.wallHp=wallMax();
   if(S.phase==='night'){ S.phase='day'; S.phaseT=0; }
 }
@@ -640,7 +657,7 @@ function drawGround(){
 //  EINGABE
 // =====================================================================
 const keys={};
-const anyModal=()=>!$('menu').hidden||!$('welcome').hidden||!$('intro').hidden||!$('world').hidden;
+const anyModal=()=>!$('menu').hidden||!$('news').hidden||!$('welcome').hidden||!$('intro').hidden||!$('world').hidden;
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(anyModal()){ if(k==='escape') closeModals(); return; }
@@ -677,7 +694,8 @@ function beep(f=880,t=0.07,type='square',vol=0.04,slide=0){
     o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+t);}catch(e){}
 }
 let beepT=0;
-$('btnSound').onclick=()=>{initAudio();soundOn=!soundOn;$('btnSound').textContent=soundOn?'Ton an':'Ton aus';$('btnSound').setAttribute('aria-pressed',soundOn);};
+try{ soundOn=localStorage.getItem('la-sound')!=='0'; }catch(e){}
+function toggleSound(){ initAudio(); soundOn=!soundOn; try{localStorage.setItem('la-sound',soundOn?'1':'0');}catch(e){} }
 
 // ---------- Hilfen ----------
 function toast(msg,ms=2600){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms);}
@@ -883,22 +901,24 @@ function updateContract(dt){
   if(S.contract.t<=0){ toast('Auftrag verpasst – der nächste kommt bald.',2400); S.contract=null; S.contractCd=30; }
 }
 // ---------- Kassierer / Kellner ----------
+const staffSpeed=l=>1+0.08*(l-1);
 function updateStaff(c,k,dt){
+  const d=S.staff[k]||(S.staff[k]={lvl:1,xp:0}), sm=staffSpeed(d.lvl);
   if(MD.tables){
     let best=-1,bd=1e9;
     for(let i=0;i<MD.tables.length;i++){ if(!tableNeeds(i)) continue; if(cashiers.some((o,j)=>j!==k&&o.target===i)) continue;
       const d=dist(c.x,c.y,MD.tables[i].x,MD.tables[i].y); if(d<bd){bd=d;best=i;} }
     c.target=best;
     const tx=best>=0?MD.tables[best].x:(k?620:380), ty=best>=0?MD.tables[best].y+32:700;
-    if(moveTo(c,tx,ty,125,dt)&&best>=0){ c.act+=dt; if(c.act>=0.8){ c.act=0; cleanTable(best,c); } } else c.act=0;
+    if(moveTo(c,tx,ty,125*sm,dt)&&best>=0){ c.act+=dt*sm; if(c.act>=0.8){ c.act=0; cleanTable(best,c); gainXp(d,1,c); } } else c.act=0;
     return;
   }
   let best=-1,bv=0;
   for(let i=0;i<LANES.length;i++){ const s=S.lanes[i]; if(s.unlocked&&s.pile>bv){ const taken=cashiers.some((o,j)=>j!==k&&o.target===i); if(!taken||s.pile>bv*3){bv=s.pile;best=i;} } }
   c.target=best;
-  moveTo(c,best>=0?LANES[best].x:(k?620:380),STAFF_Y,130,dt);
+  moveTo(c,best>=0?LANES[best].x:(k?620:380),STAFF_Y,130*sm,dt);
   for(let i=0;i<LANES.length;i++){ const s=S.lanes[i]; if(!s.unlocked||s.pile<=0) continue; const pp=lanePile(i);
-    if(dist(c.x,c.y,pp.x,pp.y)<40){ S.money+=s.pile; addFloat(c.x,c.y-50,'+$'+fmt(s.pile),'#f2c14e'); s.pile=0; s.pileN=0; beep(1000,.04,'square',.02,300); } }
+    if(dist(c.x,c.y,pp.x,pp.y)<40+6*(d.lvl-1)){ S.money+=s.pile; addFloat(c.x,c.y-50,'+$'+fmt(s.pile),'#f2c14e'); s.pile=0; s.pileN=0; beep(1000,.04,'square',.02,300); gainXp(d,1,c); } }
 }
 function gainXp(data,n,ent){
   if(data.robot) return;
@@ -925,7 +945,7 @@ function payInto(obj,cost,dt,onDone){
   if(obj.paid>=cost-0.001){obj.unlocked=true;obj.paid=cost;onDone();save();}
 }
 function update(dt){
-  S.mapTime+=dt;
+  S.mapTime+=dt; trackRate(dt);
   let ix=joy.dx, iy=joy.dy;
   if(keys['a']||keys['arrowleft'])ix-=1; if(keys['d']||keys['arrowright'])ix+=1;
   if(keys['w']||keys['arrowup'])iy-=1; if(keys['s']||keys['arrowdown'])iy+=1;
@@ -1108,8 +1128,9 @@ function refreshCtx(){
   if(n.inst){ const t=n.inst.type, st=STY[t]; lvl=S.lv[t]; max=lvl>=ST_MAX; cost=stUpCost(t); name=st.name;
     const g=st.out, sell=isSell(g);
     const nb=INST.filter(i=>i.type===t&&S.inst[i.id].unlocked).length;
-    info=(st.inp.length?`Macht <b>${GOODS[g].name}</b> aus ${st.inp.map(x=>GOODS[x].name).join(' + ')}`:`Liefert <b>${GOODS[g].name}</b>`)+` · ${prodTime(t).toFixed(1).replace('.',',')} s`+
-      (sell?` · Wert <b>$${fmt(goodPrice(g))}</b>`+(max?'':` → $${fmt(GOODS[g].price*(1+0.25*lvl))}`):' · Zutat')+
+    const tNext=Math.max(0.3,STY[t].time*Math.pow(0.9,lvl)/farmBoost(t));
+    info=(st.inp.length?`Macht <b>${GOODS[g].name}</b> aus ${st.inp.map(x=>GOODS[x].name).join(' + ')}`:`Liefert <b>${GOODS[g].name}</b>`)+` · ${prodTime(t).toFixed(1).replace('.',',')} s`+(max?'':` → ${tNext.toFixed(1).replace('.',',')} s`)+
+      (sell?` · Wert <b>$${fmt(goodPrice(g))}</b>`+(max?'':` → $${fmt(priceAt(g,lvl+1))}`):' · Zutat')+
       (nb>1?` · ${nb} Stationen`:'')+
       (st.imp?(()=>{const src=impSrc(t);return `<br>Kommt aus ${MAPDEFS[src.map].name}: ${MAPDEFS[src.map].sty[src.type].name} dort Stufe ${G.maps[src.map]?G.maps[src.map].lv[src.type]:1} → +${Math.round((farmBoost(t)-1)*100)} % Tempo`;})():`<br>Ausbau gilt für alle ${st.name}-Stationen.`);
   } else if(n.tur){ const t=n.tur,s=S.tur[t.id]; lvl=s.level; max=lvl>=ST_MAX; cost=turUpCost(t); name=t.name;
@@ -1131,6 +1152,9 @@ function refreshCtx(){
 let tab='team', resetArm=false, prestigeArm=false, codeDraft='';
 function openMenu(t){ initAudio(); if(t) tab=t; resetArm=false; renderMenu(); $('menu').hidden=false; }
 $('btnMenu').onclick=()=>openMenu();
+$('btnNight').onclick=()=>{ initAudio(); if(S.phase==='day'&&!anyModal()) startNight(); };
+$('jobPill').onclick=()=>{ jobOpen=!jobOpen; hudT=0; };
+$('hint').onclick=()=>{ hintHideT=0; $('hint').classList.add('gone'); };
 $('menuClose').onclick=()=>{$('menu').hidden=true;};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;resetArm=false;prestigeArm=false;renderMenu();});
 function row(name,lvlTxt,desc,btnTxt,disabled,onclick,bar){
@@ -1159,9 +1183,10 @@ function renderMenu(){
       if(robotsHere()<MAX_ROBOTS) body.appendChild(row('Roboter hier einsetzen',`${robotsHere()}/${MAX_ROBOTS}`,'Arbeitet ohne Pause wie ein Level-12-Arbeiter und schießt nachts mit dem Laser.','Einsetzen',G.robotsFree<1,()=>{ if(G.robotsFree<1) return; G.robotsFree--; S.workers.push({lvl:12,xp:0,assign:null,robot:true}); workers.push(makeWorker(S.workers.length-1)); beep(900,.15,'square',.04,300); toast('Roboter eingesetzt!'); G.ach.robot||unlockAch('robot'); save(); renderMenu(); }));
     }
     body.appendChild(h3(MD.staff));
+    S.staff.slice(0,S.cashiers).forEach((w,i)=>body.appendChild(row(MD.staff+' '+(i+1),'Level '+w.lvl,`Tempo +${Math.round((staffSpeed(w.lvl)-1)*100)} % · wird mit jedem ${MD.tables?'abgeräumten Tisch':'Kassieren'} besser`,null,false,null,w.xp/xpNeed(w.lvl))));
     if(S.cashiers<MAX_CASHIERS){ const c=cashierCost();
       body.appendChild(row(MD.staff+' einstellen',`${S.cashiers}/${MAX_CASHIERS}`,MD.staffDesc,'$'+fmt(c),S.money<c,()=>{
-        if(S.money<c) return; S.money-=c; cashiers.push(makeCashier(S.cashiers)); S.cashiers++;
+        if(S.money<c) return; S.money-=c; cashiers.push(makeCashier(S.cashiers)); S.cashiers++; S.staff.push({lvl:1,xp:0});
         beep(440,.15,'triangle',.05,440); toast('Neuer '+MD.staff+'!'); save(); renderMenu(); })); }
     else body.appendChild(row(MD.staff+' komplett',`${MAX_CASHIERS}/${MAX_CASHIERS}`,'Mehr gibt es auf dieser Map nicht.',null));
     body.appendChild(h3('Wachen'));
@@ -1172,12 +1197,15 @@ function renderMenu(){
     else body.appendChild(row('Wachen komplett',`${MAX_GUARDS}/${MAX_GUARDS}`,`Trainiere sie unter Ausrüstung.`,null));
   }
   if(tab==='gear'){
-    body.appendChild(h3('Verteidigung & Ausrüstung · '+MD.name));
-    for(const u of UPG){ const l=S.up[u.id], max=l>=u.max, c=upgCost(u);
-      if(u.id==='guard'&&!S.guards) continue;
-      if(u.need&&!G.maps[u.need]) continue;
+    body.appendChild(row('Ton',soundOn?'an':'aus','Soundeffekte im Spiel',soundOn?'Ton aus':'Ton an',false,()=>{ toggleSound(); renderMenu(); }));
+    body.appendChild(row('Was ist neu?','v'+NEWS_VER,'Die Änderungen des letzten Updates','Anzeigen',false,()=>{ $('menu').hidden=true; showNews(); }));
+    const upRow=u=>{ const l=upLv(u.id), max=l>=u.max, c=upgCost(u);
       body.appendChild(row(u.name,`Stufe ${l}/${u.max}`,u.desc,max?'Max':'$'+fmt(c),max||S.money<c,()=>{
-        if(S.money<c||max) return; S.money-=c; S.up[u.id]++; if(u.id==='wall'&&S.phase==='day')S.wallHp=wallMax(); beep(700,.08,'square',.045,500); save(); renderMenu(); })); }
+        if(S.money<c||max) return; S.money-=c; upInc(u.id); if(u.id==='wall'&&S.phase==='day')S.wallHp=wallMax(); beep(700,.08,'square',.045,500); save(); renderMenu(); })); };
+    body.appendChild(h3('Deine Ausrüstung · gilt auf allen Maps'));
+    for(const u of UPG){ if(!isGlobalUpg(u.id)) continue; if(u.id==='guard'&&!Object.values(G.maps).some(m=>m.guards>0)) continue; upRow(u); }
+    body.appendChild(h3('Verteidigung · nur '+MD.name));
+    for(const u of UPG){ if(isGlobalUpg(u.id)) continue; if(u.need&&!G.maps[u.need]) continue; upRow(u); }
     if(MD.id==='mine'){
       body.appendChild(h3('Schmiede-Waffen · gelten auf allen Maps'));
       body.appendChild(row('Schrotflinte',G.shotgun?'gekauft':'','Du triffst bis zu 3 Zombies gleichzeitig.',G.shotgun?null:'$'+fmt(SHOTGUN_COST),S.money<SHOTGUN_COST,()=>{ if(S.money<SHOTGUN_COST) return; S.money-=SHOTGUN_COST; G.shotgun=true; beep(500,.2,'square',.05,300); toast('Schrotflinte geschmiedet!'); save(); renderMenu(); }));
@@ -1261,7 +1289,7 @@ function doReset(){
   G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:0,prestiges:0,ach:{}}; G.maps.farm=freshMap('farm'); S=G.maps.farm; S.flags.intro=1;
   setupMap('farm'); buildRuntime(); save(); $('menu').hidden=true; toast('Neuer Außenposten');
 }
-function closeModals(){ $('menu').hidden=true; $('world').hidden=true; if(!$('welcome').hidden)$('wOk').click(); if(!$('intro').hidden)$('iOk').click(); }
+function closeModals(){ $('menu').hidden=true; $('world').hidden=true; if(!$('welcome').hidden)$('wOk').click(); if(!$('intro').hidden)$('iOk').click(); if(!$('news').hidden)$('nOk').click(); }
 $('iOk').onclick=()=>{initAudio();$('intro').hidden=true;S.flags.intro=1;save();};
 
 // ---------- Weltkarte & Reisen ----------
@@ -1295,6 +1323,25 @@ function travelTo(id){
   toast('Willkommen: '+MD.name,2200); beep(520,.2,'triangle',.05,300);
   if(!S.flags.intro){ showIntro(); } else offline();
   save();
+}
+// ---------- Was ist neu ----------
+const NEWS_VER='1.1';
+const NEWS=[
+  ['☀️','Tage dauern jetzt 3 Minuten. Mit „Nacht starten“ kannst du die Nacht auch früher beginnen.'],
+  ['📱','Das HUD ist schlanker, die oberste Reihe ist wieder gut sichtbar und Hinweise blenden sich selbst aus.'],
+  ['⬆️','Die Upgrade-Vorschau zeigt die Werte jetzt mit allen Boni.'],
+  ['🍽️','Kellner und Kassierer steigen jetzt im Level auf und werden schneller.'],
+  ['🎯','Gewehr, Schnellabzug, Sammelsack und Wachen-Training gelten jetzt auf allen Maps. Deine höchste Stufe wurde übernommen.'],
+  ['💤','Offline-Erträge richten sich nach deinem echten Einkommen, höchstens für 10 Minuten.']
+];
+function verLt(a,b){ const x=String(a).split('.').map(Number), y=String(b).split('.').map(Number); for(let i=0;i<Math.max(x.length,y.length);i++){ const d=(x[i]||0)-(y[i]||0); if(d) return d<0; } return false; }
+function showNews(after){
+  const ul=$('nBody'); ul.innerHTML='';
+  for(const [ic,t] of NEWS){ const li=document.createElement('li'); li.style.cssText='display:flex;gap:10px;align-items:flex-start';
+    const a=document.createElement('span'); a.textContent=ic; a.style.cssText='font-size:18px;line-height:1.2;flex:none';
+    const b=document.createElement('span'); b.textContent=t; li.append(a,b); ul.appendChild(li); }
+  $('news').hidden=false;
+  $('nOk').onclick=()=>{ initAudio(); $('news').hidden=true; G.seenVer=NEWS_VER; save(); if(after) after(); };
 }
 function showIntro(){ $('iBody').innerHTML=MD.intro; $('intro').hidden=false; }
 
@@ -1687,7 +1734,8 @@ let nightA=0;
 function render(time){
   const vw=cw/zoom, vh=ch/zoom;
   camX=vw>=W?(W-vw)/2:Math.max(0,Math.min(W-vw,P.x-vw/2));
-  camY=vh>=H?(H-vh)/2:Math.max(0,Math.min(H-vh,P.y-vh/2));
+  hudPadS+=(hudBottom-hudPadS)*0.08; const padTop=hudPadS/zoom;
+  camY=Math.max(-padTop,Math.min(Math.max(H-vh,-padTop),P.y-vh/2));
   ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#6f5c38'; ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(dpr*zoom,0,0,dpr*zoom,-camX*zoom*dpr,-camY*zoom*dpr);
   ctx.drawImage(ground,0,0);
@@ -1713,7 +1761,8 @@ function render(time){
   for(const c of customers) ents.push({y:c.y,f:()=>person(c,c.color,c.skin,{item:c.state==='leave'?c.bought:null,sit:c.state==='eat'})});
   for(const w of workers) ents.push({y:w.y,f:()=>{ if(S.workers[w.idx].robot){ drawRobot(w); return; } person(w,'#4f6a8a','#d9b08a',MD.tables?{chef:true,apron:'#e8e0cc',carry:w.carry}:{cap:'#2f4a6a',apron:'#e8e0cc',carry:w.carry});
     const d=S.workers[w.idx]; ctx.fillStyle='rgba(23,25,15,.8)'; rr(w.x-12,w.y+5,24,11,3); ctx.fill(); ctx.fillStyle='#9fc45a'; ctx.font='700 8.5px "Chakra Petch", sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Lv'+d.lvl,w.x,w.y+10.5);}});
-  for(const c of cashiers) ents.push({y:c.y,f:()=>{ person(c,MD.tables?'#2a2a2a':'#7a4a6a','#e0b894',MD.tables?{apron:'#f4f2ea'}:{cap:'#4a2a4a',apron:'#f2c14e'}); if(c.act>0) bar(c.x,c.y-46,26,c.act/0.8,'#f2c14e'); }});
+  for(const c of cashiers) ents.push({y:c.y,f:()=>{ person(c,MD.tables?'#2a2a2a':'#7a4a6a','#e0b894',MD.tables?{apron:'#f4f2ea'}:{cap:'#4a2a4a',apron:'#f2c14e'}); if(c.act>0) bar(c.x,c.y-46,26,c.act/0.8,'#f2c14e');
+    const sd=S.staff[cashiers.indexOf(c)]; if(sd){ ctx.fillStyle='rgba(23,25,15,.8)'; rr(c.x-12,c.y+5,24,11,3); ctx.fill(); ctx.fillStyle='#f2c14e'; ctx.font='700 8.5px "Chakra Petch", sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Lv'+sd.lvl,c.x,c.y+10.5);} }});
   for(const g of guards) ents.push({y:g.y,f:()=>person(g,'#4a5a34','#d9b08a',{helmet:'#3a4a2a',gun:true})});
   for(const t of TURRETS) if(S.tur[t.id].unlocked) ents.push({y:t.y+30,f:()=>drawTurret(t)});
   for(const z of zombies) ents.push({y:z.y,f:()=>zombie(z)});
@@ -1755,20 +1804,26 @@ function render(time){
 // =====================================================================
 //  HUD
 // =====================================================================
-let hudT=0, menuRefreshT=0;
+let hudT=0, menuRefreshT=0, jobOpen=false, hintLast=null, hintHideT=0, hudBottom=60, hudPadS=60;
 function hud(dt){
   $('money').textContent=fmt(S.money);
   hudT-=dt; if(hudT>0) return; hudT=0.12;
-  setText($('pLvl'),'Lv '+G.player.lvl+(G.stars?' · ★'+G.stars:'')); $('pXp').style.width=Math.round(G.player.xp/xpNeed(G.player.lvl)*100)+'%';
-  if(S.phase==='day'){ const r=Math.max(0,Math.ceil(DAY_LEN-S.phaseT)); setText($('dayLbl'),MD.name+' · Tag '+S.day);
-    setText($('dayInfo'),(isBossNight(S.day)?'Bossnacht in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true; }
-  else { setText($('dayLbl'),MD.name+' · '+(isBossNight(S.day)?'Bossnacht ':'Nacht ')+S.day); setText($('dayInfo'),'Zombies: '+(zombies.length+zSpawnLeft)+' · Mauer '+Math.max(0,Math.ceil(S.wallHp))+'/'+wallMax()+(G.ammo>=1?' · Munition '+Math.floor(G.ammo):''));
+  setText($('pLvl'),'Lv '+G.player.lvl+(G.stars?' ★'+G.stars:''));
+  if(S.phase==='day'){ const r=Math.max(0,Math.ceil(DAY_LEN-S.phaseT)); setText($('dayLbl'),'Tag '+S.day);
+    setText($('dayInfo'),(isBossNight(S.day)?'Boss in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true;
+    $('btnNight').hidden=S.flags.sold<1; setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
+  else { $('btnNight').hidden=true; setText($('dayLbl'),(isBossNight(S.day)?'Boss ':'Nacht ')+S.day); setText($('dayInfo'),(zombies.length+zSpawnLeft)+' Zombies · Mauer '+Math.max(0,Math.ceil(S.wallHp))+(G.ammo>=1?' · Mun. '+Math.floor(G.ammo):''));
     $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
   const ct=S.contract, jp=$('jobPill');
   if(ct){ jp.hidden=false; const r=Math.max(0,Math.ceil(ct.t));
-    setText($('jobTxt'),`Auftrag: <b>${ct.done}/${ct.n}</b> ${GOODS[ct.g].name} · ${Math.floor(r/60)}:${String(r%60).padStart(2,'0')} · +$${fmt(ct.reward)}`);
+    setText($('jobTxt'),`Auftrag <b>${ct.done}/${ct.n}</b> ${GOODS[ct.g].name} · ${Math.floor(r/60)}:${String(r%60).padStart(2,'0')}`+(jobOpen?` · Belohnung <b>$${fmt(ct.reward)}</b>`:''));
     $('jobBar').style.width=Math.round(ct.done/ct.n*100)+'%'; } else jp.hidden=true;
-  const h=hintTarget(); const hint=$('hint'); setText(hint,h?h.text:''); hint.classList.toggle('night',!!(h&&h.night));
+  const h=hintTarget(); const hint=$('hint'); const ht=h?h.text:'';
+  if(ht!==hintLast){ hintLast=ht; hintHideT=ht?6:0; hint.classList.remove('gone'); }
+  hintHideT-=0.12; if(hintHideT<=0&&ht) hint.classList.add('gone');
+  setText(hint,ht); hint.classList.toggle('night',!!(h&&h.night));
+  { const hb=$('hud'), top=hb.querySelector('.top'), jp2=$('jobPill'); let b=top.getBoundingClientRect().bottom; if(!jp2.hidden) b=Math.max(b,jp2.getBoundingClientRect().bottom);
+    if(!hint.classList.contains('gone')&&ht) b=Math.max(b,hint.getBoundingClientRect().bottom); hudBottom=b+6; }
   refreshCtx();
   checkAch(0.12);
   const canHire=humans()<MAX_WORKERS&&S.money>=hireCost();
@@ -1780,18 +1835,21 @@ function hud(dt){
 // =====================================================================
 //  OFFLINE / WÄHREND DU WEG WARST
 // =====================================================================
-function offline(){
-  const el=(Date.now()-(S.last||Date.now()))/1000; if(el<60||!S.workers.length) return;
-  const list=orderable(); if(!list.length) return;
-  const dw=demandW(); let sum=0,avg=0; list.forEach(g=>{sum+=dw[g];avg+=dw[g]*goodPrice(g);}); avg/=sum;
-  let perSec=0; for(const w of S.workers) perSec+=avg*workerCap(w.lvl)/40*prodMul(w.lvl)/(MD.tables?1.6:1);
-  const t=Math.min(el,3*3600), gain=Math.floor(perSec*t*(S.cashiers?0.6:0.45));
+const OFFLINE_MAX=600; // höchstens so viel wie 10 Minuten aktives Spielen
+let rateAcc={t:0,l:0};
+function trackRate(dt){ rateAcc.t+=dt; if(rateAcc.t>=1){ const inst=Math.max(0,(S.lifetime-rateAcc.l)/rateAcc.t);
+  S.incRate=(S.incRate||0)+(inst-(S.incRate||0))*Math.min(1,rateAcc.t/120); rateAcc={t:0,l:S.lifetime}; } }
+function resetRate(){ rateAcc={t:0,l:S.lifetime}; }
+function offline(el0){
+  resetRate();
+  const el=el0!=null?el0:(Date.now()-(S.last||Date.now()))/1000; if(el<60||!S.workers.length) return;
+  const t=Math.min(el,OFFLINE_MAX), gain=Math.floor((S.incRate||0)*t);
   if(gain<1) return;
-  const hrs=Math.floor(t/3600), mins=Math.floor(t%3600/60);
+  const mins=Math.max(1,Math.round(t/60));
   $('wTitle').textContent=MD.name;
-  $('wText').textContent=`Deine Arbeiter haben ${hrs?hrs+' Std. ':''}${mins} Min. weitergearbeitet${el>3*3600?' (höchstens 3 Stunden zählen)':''}.`;
+  $('wText').textContent=`Deine Arbeiter haben ${mins} Min. weitergearbeitet`+(el>OFFLINE_MAX?' (höchstens 10 Minuten zählen)':'')+'.';
   $('wAmount').textContent='+$'+fmt(gain); $('welcome').hidden=false;
-  $('wOk').onclick=()=>{initAudio();S.money+=gain;S.lifetime+=gain;$('welcome').hidden=true;beep(1000,.12,'square',.05,600);save();};
+  $('wOk').onclick=()=>{initAudio();S.money+=gain;S.lifetime+=gain;resetRate();$('welcome').hidden=true;beep(1000,.12,'square',.05,600);save();};
 }
 
 // =====================================================================
@@ -1800,7 +1858,8 @@ function offline(){
 load();
 setupMap(G.cur);
 buildRuntime();
-if(!S.flags.intro) showIntro(); else offline();
+for(const id in G.maps){ const m=G.maps[id]; if(m.incRate==null) m.incRate=0; }
+if(!S.flags.intro){ G.seenVer=NEWS_VER; showIntro(); } else if(G.seenVer&&verLt(G.seenVer,NEWS_VER)){ const el0=(Date.now()-(S.last||Date.now()))/1000; showNews(()=>offline(el0)); } else offline();
 setInterval(save,5000);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 addEventListener('pagehide',save);
@@ -1808,7 +1867,7 @@ addEventListener('pagehide',save);
 let lt=performance.now();
 function frame(now){
   const dt=Math.min(0.05,(now-lt)/1000); lt=now;
-  const paused=!$('intro').hidden||!$('welcome').hidden||!$('world').hidden;
+  const paused=!$('intro').hidden||!$('news').hidden||!$('welcome').hidden||!$('world').hidden;
   try{ if(!paused) update(dt); render(now/1000); hud(dt); }catch(err){ console.error(err); }
   requestAnimationFrame(frame);
 }
@@ -1825,7 +1884,7 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
   <span>Neue Version verfügbar</span><button id="updBtn" style="border:0;border-radius:8px;padding:8px 12px;background:#241c0e;color:#f2c14e;font:700 14px 'Chakra Petch',system-ui,sans-serif">Jetzt aktualisieren</button>
 </div>
 <script>
-window.APP_VERSION='1.0.0';
+window.APP_VERSION='1.1.0';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   let waiting=null, reloading=false;
   const bar=document.getElementById('updBar');
