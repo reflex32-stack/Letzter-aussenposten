@@ -452,7 +452,7 @@ function freshMap(id){
   const md=MAPDEFS[id];
   const s={id,money:md.startMoney,lifetime:0,day:1,phase:'day',phaseT:0,mapTime:0,nights:0,wallHp:0,last:Date.now(),lager:1,guards:0,cashiers:0,
     contract:null,contractCd:45,bossWins:0,inst:{},lv:{},lanes:[],tur:{},workers:[],up:{},stock:{},tables:[],
-    flags:{intro:0,made:0,deposited:0,sold:0,collected:0,cleaned:0,mapDone:0},belts:{}};
+    flags:{intro:0,made:0,deposited:0,sold:0,collected:0,cleaned:0,mapDone:0},belts:{},staff:[]};
   md.inst.forEach(i=>s.inst[i.id]={unlocked:i.cost===0,paid:0});
   for(const k in md.sty) s.lv[k]=1;
   for(const g in GOODS) s.stock[g]=0;
@@ -470,6 +470,7 @@ function fixMap(o,id){ // alten/unvollständigen Stand auffüllen
   if(Array.isArray(o.lanes)) o.lanes.forEach((v,i)=>{ if(f.lanes[i]) Object.assign(f.lanes[i],v); });
   if(Array.isArray(o.tables)) o.tables.forEach((v,i)=>{ if(f.tables[i]) Object.assign(f.tables[i],v); });
   if(G.ach) delete G.ach.belt;
+  if(Array.isArray(o.staff)) f.staff=o.staff.map(w=>({lvl:w.lvl||1,xp:w.xp||0}));
   if(Array.isArray(o.workers)) f.workers=o.workers.map(w=>({lvl:w.lvl||1,xp:w.xp||0,assign:w.assign||null,robot:!!w.robot}));
   f.id=id; return f;
 }
@@ -513,7 +514,8 @@ const chainOf=g=>{const t=PRODUCER[g];return STY[t].inp.flatMap(chainOf).concat(
 const chainReady=g=>chainOf(g).every(typeBuilt);
 const multiChain=g=>chainOf(g).some(t=>STY[t].inp.length>1);
 const bonusMul=()=>(1+0.1*G.stars)*(1+0.02*Object.keys(G.ach).length);
-const goodPrice=g=>GOODS[g].price*(1+0.25*(S.lv[PRODUCER[g]]-1))*bonusMul();
+const priceAt=(g,l)=>GOODS[g].price*(1+0.25*(l-1))*bonusMul();
+const goodPrice=g=>priceAt(g,S.lv[PRODUCER[g]]);
 function impSrc(t){ const imp=STY[t].imp; if(!imp) return null; return typeof imp==='string'?{map:'farm',type:imp}:imp; }
 function farmBoost(t){ const src=impSrc(t); if(!src) return 1; const f=G.maps[src.map]; return 1+0.12*((f?f.lv[src.type]:1)-1); }
 const prodTime=t=>Math.max(0.3,STY[t].time*Math.pow(0.9,S.lv[t]-1)/farmBoost(t));
@@ -589,6 +591,7 @@ function buildRuntime(){
   LR=LANES.map(()=>({queue:[]})); RES={}; customers=[]; zombies=[]; tracers=[]; parts=[]; floats=[];
   workers=S.workers.map((w,i)=>makeWorker(i));
   guards=[]; for(let i=0;i<S.guards;i++) guards.push(makeGuard(i));
+  if(!S.staff) S.staff=[]; while(S.staff.length<S.cashiers) S.staff.push({lvl:1,xp:0});
   cashiers=[]; for(let i=0;i<S.cashiers;i++) cashiers.push(makeCashier(i));
   P.x=500; P.y=500; P.carry=[]; spawnT=1; buildBelts(); globs=[]; rateAcc={t:0,l:S.lifetime};
   if(!S.wallHp) S.wallHp=wallMax();
@@ -876,22 +879,24 @@ function updateContract(dt){
   if(S.contract.t<=0){ toast('Auftrag verpasst – der nächste kommt bald.',2400); S.contract=null; S.contractCd=30; }
 }
 // ---------- Kassierer / Kellner ----------
+const staffSpeed=l=>1+0.08*(l-1);
 function updateStaff(c,k,dt){
+  const d=S.staff[k]||(S.staff[k]={lvl:1,xp:0}), sm=staffSpeed(d.lvl);
   if(MD.tables){
     let best=-1,bd=1e9;
     for(let i=0;i<MD.tables.length;i++){ if(!tableNeeds(i)) continue; if(cashiers.some((o,j)=>j!==k&&o.target===i)) continue;
       const d=dist(c.x,c.y,MD.tables[i].x,MD.tables[i].y); if(d<bd){bd=d;best=i;} }
     c.target=best;
     const tx=best>=0?MD.tables[best].x:(k?620:380), ty=best>=0?MD.tables[best].y+32:700;
-    if(moveTo(c,tx,ty,125,dt)&&best>=0){ c.act+=dt; if(c.act>=0.8){ c.act=0; cleanTable(best,c); } } else c.act=0;
+    if(moveTo(c,tx,ty,125*sm,dt)&&best>=0){ c.act+=dt*sm; if(c.act>=0.8){ c.act=0; cleanTable(best,c); gainXp(d,1,c); } } else c.act=0;
     return;
   }
   let best=-1,bv=0;
   for(let i=0;i<LANES.length;i++){ const s=S.lanes[i]; if(s.unlocked&&s.pile>bv){ const taken=cashiers.some((o,j)=>j!==k&&o.target===i); if(!taken||s.pile>bv*3){bv=s.pile;best=i;} } }
   c.target=best;
-  moveTo(c,best>=0?LANES[best].x:(k?620:380),STAFF_Y,130,dt);
+  moveTo(c,best>=0?LANES[best].x:(k?620:380),STAFF_Y,130*sm,dt);
   for(let i=0;i<LANES.length;i++){ const s=S.lanes[i]; if(!s.unlocked||s.pile<=0) continue; const pp=lanePile(i);
-    if(dist(c.x,c.y,pp.x,pp.y)<40){ S.money+=s.pile; addFloat(c.x,c.y-50,'+$'+fmt(s.pile),'#f2c14e'); s.pile=0; s.pileN=0; beep(1000,.04,'square',.02,300); } }
+    if(dist(c.x,c.y,pp.x,pp.y)<40+6*(d.lvl-1)){ S.money+=s.pile; addFloat(c.x,c.y-50,'+$'+fmt(s.pile),'#f2c14e'); s.pile=0; s.pileN=0; beep(1000,.04,'square',.02,300); gainXp(d,1,c); } }
 }
 function gainXp(data,n,ent){
   if(data.robot) return;
@@ -1101,8 +1106,9 @@ function refreshCtx(){
   if(n.inst){ const t=n.inst.type, st=STY[t]; lvl=S.lv[t]; max=lvl>=ST_MAX; cost=stUpCost(t); name=st.name;
     const g=st.out, sell=isSell(g);
     const nb=INST.filter(i=>i.type===t&&S.inst[i.id].unlocked).length;
-    info=(st.inp.length?`Macht <b>${GOODS[g].name}</b> aus ${st.inp.map(x=>GOODS[x].name).join(' + ')}`:`Liefert <b>${GOODS[g].name}</b>`)+` · ${prodTime(t).toFixed(1).replace('.',',')} s`+
-      (sell?` · Wert <b>$${fmt(goodPrice(g))}</b>`+(max?'':` → $${fmt(GOODS[g].price*(1+0.25*lvl))}`):' · Zutat')+
+    const tNext=Math.max(0.3,STY[t].time*Math.pow(0.9,lvl)/farmBoost(t));
+    info=(st.inp.length?`Macht <b>${GOODS[g].name}</b> aus ${st.inp.map(x=>GOODS[x].name).join(' + ')}`:`Liefert <b>${GOODS[g].name}</b>`)+` · ${prodTime(t).toFixed(1).replace('.',',')} s`+(max?'':` → ${tNext.toFixed(1).replace('.',',')} s`)+
+      (sell?` · Wert <b>$${fmt(goodPrice(g))}</b>`+(max?'':` → $${fmt(priceAt(g,lvl+1))}`):' · Zutat')+
       (nb>1?` · ${nb} Stationen`:'')+
       (st.imp?(()=>{const src=impSrc(t);return `<br>Kommt aus ${MAPDEFS[src.map].name}: ${MAPDEFS[src.map].sty[src.type].name} dort Stufe ${G.maps[src.map]?G.maps[src.map].lv[src.type]:1} → +${Math.round((farmBoost(t)-1)*100)} % Tempo`;})():`<br>Ausbau gilt für alle ${st.name}-Stationen.`);
   } else if(n.tur){ const t=n.tur,s=S.tur[t.id]; lvl=s.level; max=lvl>=ST_MAX; cost=turUpCost(t); name=t.name;
@@ -1155,9 +1161,10 @@ function renderMenu(){
       if(robotsHere()<MAX_ROBOTS) body.appendChild(row('Roboter hier einsetzen',`${robotsHere()}/${MAX_ROBOTS}`,'Arbeitet ohne Pause wie ein Level-12-Arbeiter und schießt nachts mit dem Laser.','Einsetzen',G.robotsFree<1,()=>{ if(G.robotsFree<1) return; G.robotsFree--; S.workers.push({lvl:12,xp:0,assign:null,robot:true}); workers.push(makeWorker(S.workers.length-1)); beep(900,.15,'square',.04,300); toast('Roboter eingesetzt!'); G.ach.robot||unlockAch('robot'); save(); renderMenu(); }));
     }
     body.appendChild(h3(MD.staff));
+    S.staff.slice(0,S.cashiers).forEach((w,i)=>body.appendChild(row(MD.staff+' '+(i+1),'Level '+w.lvl,`Tempo +${Math.round((staffSpeed(w.lvl)-1)*100)} % · wird mit jedem ${MD.tables?'abgeräumten Tisch':'Kassieren'} besser`,null,false,null,w.xp/xpNeed(w.lvl))));
     if(S.cashiers<MAX_CASHIERS){ const c=cashierCost();
       body.appendChild(row(MD.staff+' einstellen',`${S.cashiers}/${MAX_CASHIERS}`,MD.staffDesc,'$'+fmt(c),S.money<c,()=>{
-        if(S.money<c) return; S.money-=c; cashiers.push(makeCashier(S.cashiers)); S.cashiers++;
+        if(S.money<c) return; S.money-=c; cashiers.push(makeCashier(S.cashiers)); S.cashiers++; S.staff.push({lvl:1,xp:0});
         beep(440,.15,'triangle',.05,440); toast('Neuer '+MD.staff+'!'); save(); renderMenu(); })); }
     else body.appendChild(row(MD.staff+' komplett',`${MAX_CASHIERS}/${MAX_CASHIERS}`,'Mehr gibt es auf dieser Map nicht.',null));
     body.appendChild(h3('Wachen'));
@@ -1711,7 +1718,8 @@ function render(time){
   for(const c of customers) ents.push({y:c.y,f:()=>person(c,c.color,c.skin,{item:c.state==='leave'?c.bought:null,sit:c.state==='eat'})});
   for(const w of workers) ents.push({y:w.y,f:()=>{ if(S.workers[w.idx].robot){ drawRobot(w); return; } person(w,'#4f6a8a','#d9b08a',MD.tables?{chef:true,apron:'#e8e0cc',carry:w.carry}:{cap:'#2f4a6a',apron:'#e8e0cc',carry:w.carry});
     const d=S.workers[w.idx]; ctx.fillStyle='rgba(23,25,15,.8)'; rr(w.x-12,w.y+5,24,11,3); ctx.fill(); ctx.fillStyle='#9fc45a'; ctx.font='700 8.5px "Chakra Petch", sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Lv'+d.lvl,w.x,w.y+10.5);}});
-  for(const c of cashiers) ents.push({y:c.y,f:()=>{ person(c,MD.tables?'#2a2a2a':'#7a4a6a','#e0b894',MD.tables?{apron:'#f4f2ea'}:{cap:'#4a2a4a',apron:'#f2c14e'}); if(c.act>0) bar(c.x,c.y-46,26,c.act/0.8,'#f2c14e'); }});
+  for(const c of cashiers) ents.push({y:c.y,f:()=>{ person(c,MD.tables?'#2a2a2a':'#7a4a6a','#e0b894',MD.tables?{apron:'#f4f2ea'}:{cap:'#4a2a4a',apron:'#f2c14e'}); if(c.act>0) bar(c.x,c.y-46,26,c.act/0.8,'#f2c14e');
+    const sd=S.staff[cashiers.indexOf(c)]; if(sd){ ctx.fillStyle='rgba(23,25,15,.8)'; rr(c.x-12,c.y+5,24,11,3); ctx.fill(); ctx.fillStyle='#f2c14e'; ctx.font='700 8.5px "Chakra Petch", sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Lv'+sd.lvl,c.x,c.y+10.5);} }});
   for(const g of guards) ents.push({y:g.y,f:()=>person(g,'#4a5a34','#d9b08a',{helmet:'#3a4a2a',gun:true})});
   for(const t of TURRETS) if(S.tur[t.id].unlocked) ents.push({y:t.y+30,f:()=>drawTurret(t)});
   for(const z of zombies) ents.push({y:z.y,f:()=>zombie(z)});
@@ -1828,6 +1836,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.1</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.1b</div>
 </body>
 </html>
