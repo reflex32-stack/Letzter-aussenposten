@@ -478,15 +478,17 @@ let G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:fals
 function load(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
-    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
+    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
       for(const id in (o.maps||{})) if(MAPDEFS[id]) G.maps[id]=fixMap(o.maps[id],id); }
     else { const old=localStorage.getItem(OLD_KEY);
       if(old){ const o=JSON.parse(old); G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.maps.farm=fixMap(o,'farm'); } }
   }catch(e){}
   if(!G.maps[G.cur]) G.maps[G.cur]=freshMap(G.cur);
+  if(!G.gup){ G.gup={magnet:0,dmg:0,rate:0,guard:0}; // Umstellung: höchste Stufe aller Maps übernehmen
+    for(const id in G.maps){ const u=G.maps[id].up||{}; for(const k of GLOBAL_UPG) G.gup[k]=Math.max(G.gup[k],u[k]||0); } }
   S=G.maps[G.cur];
 }
-function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
+function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),stars:G.stars,prestiges:G.prestiges,ach:G.ach};
   for(const id in G.maps){ const m=Object.assign({},G.maps[id]); delete m.player; o.maps[id]=m; } return o; }
 function save(){ S.last=Date.now(); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saveObj())); }catch(e){} }
 // ---------- Spielstand-Code (zwischen Geräten übertragen) ----------
@@ -532,14 +534,19 @@ const cashierCost=()=>Math.round(300*Math.pow(4,S.cashiers)*(MD.num>1?2:1));
 const guardCost=()=>Math.round(220*Math.pow(2.5,S.guards)*(MD.num>1?1.5:1));
 const lagerCap=()=>8+4*(S.lager-1);
 const lagerCost=()=>Math.round(80*Math.pow(1.7,S.lager-1)*(MD.num>1?2:1));
-const magnetR=()=>50+10*S.up.magnet;
-const gunDmg=()=>12*Math.pow(1.35,S.up.dmg);
-const gunRate=()=>2*(1+0.12*S.up.rate);
-const guardDmg=()=>8*Math.pow(1.3,S.up.guard);
+const GLOBAL_UPG=['magnet','dmg','rate','guard'];
+const isGlobalUpg=id=>GLOBAL_UPG.includes(id);
+function gup(){ if(!G.gup) G.gup={magnet:0,dmg:0,rate:0,guard:0}; return G.gup; }
+const upLv=id=>isGlobalUpg(id)?(gup()[id]||0):(S.up[id]||0);
+function upInc(id){ if(isGlobalUpg(id)) gup()[id]=(gup()[id]||0)+1; else S.up[id]++; }
+const magnetR=()=>50+10*upLv('magnet');
+const gunDmg=()=>12*Math.pow(1.35,upLv('dmg'));
+const gunRate=()=>2*(1+0.12*upLv('rate'));
+const guardDmg=()=>8*Math.pow(1.3,upLv('guard'));
 const wireDps=()=>S.up.wire?1.5*S.up.wire*Math.pow(1.12,S.up.wire):0;
 const wireSlow=()=>1-Math.min(0.5,0.07*S.up.wire);
 const repairRate=()=>10+6*S.up.wall;
-const upgCost=u=>Math.round(u.base*Math.pow(u.mul,S.up[u.id]));
+const upgCost=u=>Math.round(u.base*Math.pow(u.mul,upLv(u.id)));
 const wallMax=()=>250+150*S.up.wall;
 const turretDmg=l=>9*Math.pow(1.35,l-1);
 const turretRate=l=>1.3*(1+0.05*(l-1));
@@ -1176,12 +1183,13 @@ function renderMenu(){
   }
   if(tab==='gear'){
     body.appendChild(row('Ton',soundOn?'an':'aus','Soundeffekte im Spiel',soundOn?'Ton aus':'Ton an',false,()=>{ toggleSound(); renderMenu(); }));
-    body.appendChild(h3('Verteidigung & Ausrüstung · '+MD.name));
-    for(const u of UPG){ const l=S.up[u.id], max=l>=u.max, c=upgCost(u);
-      if(u.id==='guard'&&!S.guards) continue;
-      if(u.need&&!G.maps[u.need]) continue;
+    const upRow=u=>{ const l=upLv(u.id), max=l>=u.max, c=upgCost(u);
       body.appendChild(row(u.name,`Stufe ${l}/${u.max}`,u.desc,max?'Max':'$'+fmt(c),max||S.money<c,()=>{
-        if(S.money<c||max) return; S.money-=c; S.up[u.id]++; if(u.id==='wall'&&S.phase==='day')S.wallHp=wallMax(); beep(700,.08,'square',.045,500); save(); renderMenu(); })); }
+        if(S.money<c||max) return; S.money-=c; upInc(u.id); if(u.id==='wall'&&S.phase==='day')S.wallHp=wallMax(); beep(700,.08,'square',.045,500); save(); renderMenu(); })); };
+    body.appendChild(h3('Deine Ausrüstung · gilt auf allen Maps'));
+    for(const u of UPG){ if(!isGlobalUpg(u.id)) continue; if(u.id==='guard'&&!Object.values(G.maps).some(m=>m.guards>0)) continue; upRow(u); }
+    body.appendChild(h3('Verteidigung · nur '+MD.name));
+    for(const u of UPG){ if(isGlobalUpg(u.id)) continue; if(u.need&&!G.maps[u.need]) continue; upRow(u); }
     if(MD.id==='mine'){
       body.appendChild(h3('Schmiede-Waffen · gelten auf allen Maps'));
       body.appendChild(row('Schrotflinte',G.shotgun?'gekauft':'','Du triffst bis zu 3 Zombies gleichzeitig.',G.shotgun?null:'$'+fmt(SHOTGUN_COST),S.money<SHOTGUN_COST,()=>{ if(S.money<SHOTGUN_COST) return; S.money-=SHOTGUN_COST; G.shotgun=true; beep(500,.2,'square',.05,300); toast('Schrotflinte geschmiedet!'); save(); renderMenu(); }));
@@ -1836,6 +1844,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.1b</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.1c</div>
 </body>
 </html>
