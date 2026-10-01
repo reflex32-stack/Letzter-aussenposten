@@ -602,7 +602,7 @@ const hireCost=()=>Math.round(120*Math.pow(2.6,humans())*(MD.num>1?2:1));
 const cashierCost=()=>Math.round(300*Math.pow(4,S.cashiers)*(MD.num>1?2:1));
 const guardCost=()=>Math.round(220*Math.pow(2.5,S.guards)*(MD.num>1?1.5:1)*DF().cost);
 const mechCost=()=>Math.round(450*Math.pow(3,S.mechs||0)*(MD.num>1?1.5:1)*DF().cost);
-const mechRate=()=>0.35*repairRate();
+const mechRate=()=>0.2*repairRate();
 const shotgunCost=()=>Math.round(SHOTGUN_COST*DF().cost), crossbowCost=()=>Math.round(CROSSBOW_COST*DF().cost);
 const turCost=t=>Math.round(t.cost*DF().cost);
 const lagerCap=()=>8+4*(S.lager-1);
@@ -618,7 +618,7 @@ const gunRate=()=>2*(1+0.12*upLv('rate'));
 const guardDmg=()=>8*Math.pow(1.3,upLv('guard'));
 const wireDps=()=>S.up.wire?1.5*S.up.wire*Math.pow(1.12,S.up.wire):0;
 const wireSlow=()=>1-Math.min(0.5,0.07*S.up.wire);
-const repairRate=()=>10+6*S.up.wall;
+const repairRate=()=>10+3*S.up.wall;
 const upgCost=u=>Math.round(u.base*Math.pow(u.mul,upLv(u.id))*(u.id==='magnet'?1:DF().cost));
 const wallMax=()=>Math.round((250+150*S.up.wall)*(1+0.05*sl('steel')));
 const turretDmg=l=>9*Math.pow(1.35,l-1);
@@ -662,6 +662,7 @@ let workers=[], guards=[], cashiers=[];
 let customers=[], zombies=[], tracers=[], parts=[], floats=[];
 let mines=[], globs=[];
 let spawnT=1, zSpawnLeft=0, zSpawnT=0, repairing=false, mechWork=false;
+let wallAttackers=0;
 let endless=null; // läuft gerade die Endlos-Verteidigung?
 const ND=()=>endless?endless.eday:S.day, bossNow=()=>endless?(endless.wave>0&&endless.wave%5===0):isBossNight(S.day);
 let specT={oil:0,cata:0,gun:0,laser:0}, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
@@ -1238,9 +1239,11 @@ function updateNight(dt){
   globs=globs.filter(g=>!g.hit);
   P.cd-=dt;
   if(P.cd<=0){ const t=shoot(P.x,P.y-6,250,gunDmg(),'p'); if(t){P.cd=1/gunRate();P.face=Math.atan2(t.y-P.y,t.x-P.x);P.aimT=0.3;sfx(G.shotgun?'shotgun':'rifle');} }
+  // Reparieren unter Druck: je mehr Zombies an der Mauer kratzen, desto langsamer (10 Angreifer = halbes Tempo)
+  wallAttackers=zombies.filter(z=>!z.dead&&!z.spitter&&z.y<=COMP.y1+18).length; const press=1/(1+wallAttackers/10);
   repairing=dist(P.x,P.y,REPAIR.x,REPAIR.y)<70&&S.wallHp<wallMax();
-  if(repairing){ S.wallHp=Math.min(wallMax(),S.wallHp+repairRate()*dt); if(Math.random()<dt*6) parts.push({x:REPAIR.x+Math.random()*80-40,y:COMP.y1-6,vx:Math.random()*40-20,vy:-80,t:0,life:.5,color:'#f2c14e',r:3}); }
-  mechWork=false; if((S.mechs||0)>0&&S.wallHp<wallMax()){ mechWork=true; S.wallHp=Math.min(wallMax(),S.wallHp+mechRate()*S.mechs*dt);
+  if(repairing){ S.wallHp=Math.min(wallMax(),S.wallHp+repairRate()*press*dt); if(Math.random()<dt*6) parts.push({x:REPAIR.x+Math.random()*80-40,y:COMP.y1-6,vx:Math.random()*40-20,vy:-80,t:0,life:.5,color:'#f2c14e',r:3}); }
+  mechWork=false; if((S.mechs||0)>0&&S.wallHp<wallMax()){ mechWork=true; S.wallHp=Math.min(wallMax(),S.wallHp+mechRate()*S.mechs*press*dt);
     if(Math.random()<dt*3*S.mechs){ const m=MECH_POS[Math.floor(Math.random()*S.mechs)]; parts.push({x:m.x+Math.random()*20-10,y:COMP.y1-6,vx:Math.random()*40-20,vy:-70,t:0,life:.45,color:'#ffd07a',r:2.5}); } }
   for(const t of TURRETS){ const s=S.tur[t.id]; if(!s.unlocked) continue; const rt=TR[t.id];
     if(rt.stun>0){ rt.stun-=dt; continue; }
@@ -1354,7 +1357,7 @@ function renderMenu(){
     else body.appendChild(row('Wachen komplett',`${MAX_GUARDS}/${MAX_GUARDS}`,`Trainiere sie unter Ausrüstung.`,null));
     body.appendChild(h3('Mechaniker'));
     if((S.mechs||0)<MAX_MECHS){ const c=mechCost();
-      body.appendChild(row('Mechaniker einstellen',`${S.mechs||0}/${MAX_MECHS}`,`Repariert nachts automatisch die Mauer (${fmt(mechRate())} pro Sekunde). Du bist schneller (${fmt(repairRate())}/s), also hilf mit!`,'$'+fmt(c),S.money<c,()=>{
+      body.appendChild(row('Mechaniker einstellen',`${S.mechs||0}/${MAX_MECHS}`,`Repariert nachts automatisch die Mauer (${fmt(mechRate())} pro Sekunde). Du bist schneller (${fmt(repairRate())}/s), also hilf mit! Je mehr Zombies an der Mauer kratzen, desto langsamer geht jede Reparatur.`,'$'+fmt(c),S.money<c,()=>{
         if(S.money<c) return; S.money-=c; S.mechs=(S.mechs||0)+1; beep(440,.15,'triangle',.05,440); toast('Neuer Mechaniker!'); save(); renderMenu(); })); }
     else body.appendChild(row('Mechaniker komplett',`${MAX_MECHS}/${MAX_MECHS}`,`Ein besserer Mauer-Ausbau macht sie schneller.`,null));
   }
@@ -1533,6 +1536,7 @@ function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href
 const NEWS_VER='1.5';
 const NEWS_LOG={
  '1.5':[
+  ['🔨','Reparieren ist schwächer: weniger Zuwachs pro Mauer-Stufe, Mechaniker 20 % statt 35 %, und unter Druck (viele Zombies an der Mauer) geht es langsamer. Die Verteidigung davor zählt jetzt mehr.'],
   ['🏆','Neu im Labor: Endlos-Verteidigung! Sobald alle Labor-Ziele erfüllt sind, startest du sie im Menü unter „Ziele“. Welle um Welle, bis die Mauer fällt – dein Spielstand bleibt immer erhalten.'],
   ['⭐','Pro 10 Wellen Rekord gibt es einmalig einen Stern. Deinen Rekord kannst du mit einem Knopf für Discord teilen.']
  ],
@@ -2001,7 +2005,7 @@ function render(time){
     ctx.strokeStyle='#2e3a20'; ctx.lineWidth=2; ctx.strokeRect(bx-20,by-12,40,22); drawGood('munition',bx-8,by-1,0.9);
     ctx.fillStyle='#f2c14e'; ctx.font='700 10px "Chakra Petch", sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(Math.floor(G.ammo),bx+10,by-1); }
   if(S.phase==='night'){ ctx.fillStyle=repairing?'rgba(159,196,90,.3)':'rgba(242,193,78,.12)'; rr(REPAIR.x-60,REPAIR.y-24,120,40,10); ctx.fill();
-    ctx.setLineDash([6,5]); ctx.strokeStyle=repairing?'#9fc45a':'rgba(242,193,78,.7)'; ctx.lineWidth=2; ctx.stroke(); ctx.setLineDash([]); label(repairing?'REPARIERT …':'MAUER REPARIEREN',REPAIR.x,REPAIR.y-34); }
+    ctx.setLineDash([6,5]); ctx.strokeStyle=repairing?'#9fc45a':'rgba(242,193,78,.7)'; ctx.lineWidth=2; ctx.stroke(); ctx.setLineDash([]); label(repairing?(wallAttackers>=5?'REPARIERT … UNTER DRUCK':'REPARIERT …'):'MAUER REPARIEREN',REPAIR.x,REPAIR.y-34); }
 
   const ents=[];
   for(const c of customers) ents.push({y:c.y,f:()=>person(c,c.color,c.skin,{item:c.state==='leave'?c.bought:null,sit:c.state==='eat'})});
@@ -2137,6 +2141,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.5a</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.5b</div>
 </body>
 </html>
