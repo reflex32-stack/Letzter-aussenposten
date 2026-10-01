@@ -1537,19 +1537,15 @@ function hardGameOver(){
 // ---------- Was ist neu ----------
 const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
 function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-const NEWS_VER='1.6';
+const NEWS_VER='2.0';
 const NEWS_LOG={
- '1.6':[
-  ['🏆','Neu: Das Finale! Sind alle Labor-Ziele erfüllt, startest du im Menü unter „Ziele“ die Endlos-Verteidigung. Welle um Welle, bis die Mauer fällt – dann endet diese Welt und eine neue beginnt.'],
-  ['⭐','Sterne gibt es jetzt pro Durchlauf: 1/2/3 ★ je nach Schwierigkeit, plus 1 ★ je 10 Wellen im Finale. Auf „Schwer“ bleiben Sterne und Rekord auch erhalten, wenn die Mauer fällt.']
- ],
- '1.5':[
-  ['🔨','Reparieren ist schwächer: weniger Zuwachs pro Mauer-Stufe, Mechaniker 20 % statt 35 %, und unter Druck (viele Zombies an der Mauer) geht es langsamer. Die Verteidigung davor zählt jetzt mehr.'],
-  ['🏆','Neu im Labor: Endlos-Verteidigung mit Rekord und Teilen-Knopf für Discord.']
- ],
- '1.4':[
-  ['🛡️','Neu: Spezial-Aufrüstungen! Jede Map hat zwei eigene, z. B. Wachhund, Heißes Öl, Sprengladung, Stahlmauer und Laser-Turm. Du findest sie im Menü unter Ausrüstung → „Spezial“.'],
-  ['💥','Sprengladung (Mine) und Energieschild (Labor) löst du nachts selbst aus: Der Knopf erscheint oben neben der Tagesanzeige.']
+ '2.0':[
+  ['🛡️','Spezial-Aufrüstungen: Jede Map hat zwei eigene, z. B. Wachhund, Heißes Öl, Stahlmauer oder Laser-Turm (Menü → Ausrüstung → „Spezial“). Sprengladung und Energieschild löst du nachts per Knopf aus.'],
+  ['🏆','Das Finale: Sind alle Labor-Ziele erfüllt, startest du unter „Ziele“ die Endlos-Verteidigung. Welle um Welle, bis die Mauer fällt – dann endet diese Welt und eine neue beginnt.'],
+  ['⭐','Neue Sterne-Regeln: pro Durchlauf 1/2/3 ★ je nach Schwierigkeit, plus 1 ★ je 10 Wellen im Finale. Der alte Neustart-Knopf entfällt – deine bisherigen Sterne bleiben.'],
+  ['🧟','Mehr Zombies pro Nacht, und sie kommen schneller hintereinander.'],
+  ['🔨','Reparieren ist schwächer und wird langsamer, je mehr Zombies an der Mauer kratzen. Die Verteidigung davor zählt jetzt mehr.'],
+  ['💀','Auf „Schwer“ bleiben Sterne und Endlos-Rekord erhalten, auch wenn die Mauer fällt.']
  ],
  '1.3.1':[
   ['📦','Kein versehentliches Abgeben mehr: Deine Waren landen erst im Lager, wenn du kurz hinter der Theke stehen bleibst (der Kreis füllt sich). Vorbeilaufen gibt nichts ab.']
@@ -2149,6 +2145,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.6b</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.0</div>
 </body>
 </html>
