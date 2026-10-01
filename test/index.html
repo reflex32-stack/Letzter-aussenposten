@@ -617,7 +617,7 @@ const turretRate=l=>1.3*(1+0.05*(l-1));
 const turUpCost=t=>Math.round(t.up*Math.pow(1.42,S.tur[t.id].level-1)*DF().cost);
 const DAY_LEN=180, NIGHT_MAX=55;
 const isBossNight=d=>d%5===0;
-const zCount=d=>Math.round(Math.min(24,2+Math.floor(d*0.9))*(MD.horde||1)*DF().cnt);
+const zCount=d=>Math.round(Math.min(40,4+Math.floor(d*1.3))*(MD.horde||1)*DF().cnt);
 const zHp=d=>13*(1+0.13*(d-1))*Math.pow(1.035,d-1)*DF().hp*(1+DF().grow*(d-1));
 const zWallDmg=d=>(2+0.1*d)*DF().dmg;
 function orderable(){ return ORDER.map(t=>STY[t].out).filter(g=>isSell(g)&&chainReady(g)); }
@@ -1159,7 +1159,7 @@ function useSkill(){ const k=skillInfo(); if(!k||!k.ready) return; const y1=COMP
   if(k.id==='shield'){ const l=sl('shield'); shieldT=5+0.3*l; shieldCd=45-2*l; beep(900,.3,'sine',.05,400); toast('Energieschild aktiv!',1500); } }
 function updateNight(dt){
   zSpawnT-=dt;
-  if(zSpawnLeft>0&&zSpawnT<=0){ zSpawnT=Math.max(0.8,2.6-S.day*0.05)*(0.6+Math.random()*0.8)*DF().spawn;
+  if(zSpawnLeft>0&&zSpawnT<=0){ zSpawnT=Math.min(Math.max(0.8,2.6-S.day*0.05),34/Math.max(1,zCount(S.day)))*(0.6+Math.random()*0.8)*DF().spawn; // alle Zombies kommen in gut 30 s
    const grp=1+(S.day>2&&Math.random()<DF().group?1+Math.floor(Math.random()*2):0);
    for(let gi=0;gi<grp&&zSpawnLeft>0;gi++){ zSpawnLeft--;
     const sm=DF().spec, zr=(MD.zRunner||0)*sm, zb=(MD.zBrute||0)*sm, zs=(MD.zSpit||0)*sm;
@@ -2076,6 +2076,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.4b</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.4c</div>
 </body>
 </html>
