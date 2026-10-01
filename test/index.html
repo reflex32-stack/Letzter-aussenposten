@@ -47,6 +47,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dayrow{display:flex;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden}
 .nightbtn{pointer-events:auto;border:1px solid #6a4a8a;background:#2a2238;color:#d8c8f0;border-radius:6px;padding:3px 8px;font:700 11px var(--body)}
 .nightbtn:active{transform:translateY(1px)}
+.nightbtn.skill{border-color:#c9642f;background:#3a2414;color:#ffd7a0}
+.nightbtn.skill:disabled{opacity:.55}
 .nightbtn.pulse{animation:nbPulse 1.4s ease-in-out infinite;border-color:#b48ae8;color:#fff}
 @keyframes nbPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,138,232,.7)}50%{box-shadow:0 0 0 6px rgba(180,138,232,0)}}
 #dayLbl{font-family:var(--display);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--sand)}
@@ -133,7 +135,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 <div id="hud">
   <div class="top">
     <div class="pill money" aria-label="Geld"><span class="coin"></span><span id="money">0</span><span class="lv" id="pLvl">Lv 1</span></div>
-    <div class="pill day"><div class="dayrow"><span id="dayLbl">Tag 1</span><span id="dayInfo"></span></div><button class="nightbtn" id="btnNight">Nacht starten</button><div class="wallbar" id="wallBar" hidden><i id="wallFill"></i></div></div>
+    <div class="pill day"><div class="dayrow"><span id="dayLbl">Tag 1</span><span id="dayInfo"></span></div><button class="nightbtn" id="btnNight">Nacht starten</button><button class="nightbtn skill" id="btnSkill" hidden></button><div class="wallbar" id="wallBar" hidden><i id="wallFill"></i></div></div>
     <div class="topbtns"><button class="btn" id="btnMenu">Menü<span class="dot" id="menuDot" hidden></span></button></div>
   </div>
   <button class="pill job" id="jobPill" hidden><span id="jobTxt"></span><div class="xpbar"><i id="jobBar"></i></div></button>
@@ -472,6 +474,21 @@ const DIFFS={
     desc:'Noch mehr und härtere Zombies. Ohne starke Verteidigung geht nichts. Verteidigung ist 25 % teurer. Fällt die Mauer, ist der ganze Spielstand weg!'}
 };
 const DF=()=>DIFFS[G.diff]||DIFFS.easy;
+// Spezial-Aufrüstungen: je Map zwei, gelten nur dort
+const SPEC={
+  farm:[{id:'dog',  name:'Wachhund',      need:'huhn',        base:150,  desc:'Beißt Zombies, die an der Mauer kratzen'},
+        {id:'hay',  name:'Heuballen',     need:'muehle',      base:250,  desc:'Bremst Zombies auf dem Weg zur Mauer'}],
+  kueche:[{id:'oil', name:'Heißes Öl',    need:'topf',        base:700,  desc:'Gießt regelmäßig Öl über alle Zombies am Tor'},
+        {id:'cata', name:'Topf-Katapult', need:'backstube',   base:1000, desc:'Wirft Töpfe in Zombie-Gruppen (Flächenschaden)'}],
+  mine:[{id:'lore', name:'Lore-Barrikade',need:'schmelze',    base:2500, desc:'Bremst Zombies kurz vor der Mauer stark'},
+        {id:'blast',name:'Sprengladung',  need:'pulvermuehle',base:4000, desc:'Einmal pro Nacht per Knopf: riesige Explosion vor der Mauer', active:true}],
+  werkstatt:[{id:'steel',name:'Stahlmauer',need:'motorbau',   base:12000,desc:'Mauer hält mehr aus (+5 % pro Stufe)'},
+        {id:'gun',  name:'Geschützturm',  need:'zahnrad',     base:15000,desc:'Streuschuss auf bis zu 3 Zombies'}],
+  labor:[{id:'laser',name:'Laser-Turm',   need:'schaltkreis', base:50000,desc:'Durchschlagender Strahl mit großer Reichweite'},
+        {id:'shield',name:'Energieschild',need:'batterie',    base:70000,desc:'Per Knopf: Mauer für einige Sekunden unverwundbar', active:true}],
+};
+const specList=()=>(SPEC[MD.id]||[]).map(u=>Object.assign({mul:1.7,max:10},u));
+const sl=id=>(S.up&&S.up[id])||0;
 const MAX_MECHS=2;
 const MAX_WORKERS=6, MAX_GUARDS=4, MAX_CASHIERS=2, LAGER_MAX=20, ST_MAX=20;
 
@@ -585,7 +602,7 @@ const GLOBAL_UPG=['magnet','dmg','rate','guard'];
 const isGlobalUpg=id=>GLOBAL_UPG.includes(id);
 function gup(){ if(!G.gup) G.gup={magnet:0,dmg:0,rate:0,guard:0}; return G.gup; }
 const upLv=id=>isGlobalUpg(id)?(gup()[id]||0):(S.up[id]||0);
-function upInc(id){ if(isGlobalUpg(id)) gup()[id]=(gup()[id]||0)+1; else S.up[id]++; }
+function upInc(id){ if(isGlobalUpg(id)) gup()[id]=(gup()[id]||0)+1; else S.up[id]=(S.up[id]||0)+1; }
 const magnetR=()=>50+10*upLv('magnet');
 const gunDmg=()=>12*Math.pow(1.35,upLv('dmg'));
 const gunRate=()=>2*(1+0.12*upLv('rate'));
@@ -594,7 +611,7 @@ const wireDps=()=>S.up.wire?1.5*S.up.wire*Math.pow(1.12,S.up.wire):0;
 const wireSlow=()=>1-Math.min(0.5,0.07*S.up.wire);
 const repairRate=()=>10+6*S.up.wall;
 const upgCost=u=>Math.round(u.base*Math.pow(u.mul,upLv(u.id))*(u.id==='magnet'?1:DF().cost));
-const wallMax=()=>250+150*S.up.wall;
+const wallMax=()=>Math.round((250+150*S.up.wall)*(1+0.05*sl('steel')));
 const turretDmg=l=>9*Math.pow(1.35,l-1);
 const turretRate=l=>1.3*(1+0.05*(l-1));
 const turUpCost=t=>Math.round(t.up*Math.pow(1.42,S.tur[t.id].level-1)*DF().cost);
@@ -636,6 +653,7 @@ let workers=[], guards=[], cashiers=[];
 let customers=[], zombies=[], tracers=[], parts=[], floats=[];
 let mines=[], globs=[];
 let spawnT=1, zSpawnLeft=0, zSpawnT=0, repairing=false, mechWork=false;
+let specT={oil:0,cata:0,gun:0,laser:0}, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
 const MECH_POS=[{x:445,y:856},{x:555,y:856}];
 const spotOf=i=>({x:i.x,y:i.y+SPOT_DY});
 const lanePile=k=>({x:LANES[k].x,y:COUNTER.y0+12});
@@ -1076,6 +1094,7 @@ function update(dt){
 // =====================================================================
 function startNight(){
   S.phase='night'; S.phaseT=0; S.wallHp=wallMax();
+  specT={oil:1,cata:1,gun:0,laser:0}; pots=[]; blastUsed=false; shieldT=0; shieldCd=0;
   zSpawnLeft=zCount(S.day)+(isBossNight(S.day)?1:0); zSpawnT=1.5;
   mines=[]; for(let i=0;i<2*S.up.mine;i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
   if(isBossNight(S.day)) toast('Bossnacht! Ein riesiger Zombie kommt zum Schluss.',3400);
@@ -1101,6 +1120,41 @@ function shoot(x,y,range,dmg,from){
     if(t.hp<=0) killReward(t); }
   return targets[0];
 }
+function hurt(z,d){ if(z.dead) return; z.hp-=d; z.hit=0.12; if(z.hp<=0) killReward(z); }
+function segDist(px,py,ax,ay,bx,by){ const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy; let t=l?((px-ax)*dx+(py-ay)*dy)/l:0; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-ax-t*dx,py-ay-t*dy); }
+const zRef=()=>zHp(S.day)*(1+0.25*(MD.num-1)); // Leben eines normalen Zombies hier und heute
+function specSlow(z){ const y1=COMP.y1; let m=1;
+  if(sl('hay')&&z.y>y1+110&&z.y<y1+200) m*=1-Math.min(0.5,0.06*sl('hay'));
+  if(sl('lore')&&z.y<y1+100) m*=1-Math.min(0.6,0.08*sl('lore'));
+  return m; }
+const LASER_O={x:770,y:COMP.y1-14}, CATA_O={x:230,y:COMP.y1-14}, GUN_O={x:GATE_X-GATE_HALF,y:COMP.y1-30};
+function updateSpecials(dt){
+  const ref=zRef(), y1=COMP.y1; let l;
+  if(shieldT>0) shieldT-=dt; if(shieldCd>0) shieldCd-=dt;
+  if((l=sl('dog'))>0){ const w=zombies.filter(z=>!z.dead&&!z.spitter&&z.y<=y1+18);
+    if(w.length){ const z=w.reduce((a,b)=>Math.abs(a.x-GATE_X)<Math.abs(b.x-GATE_X)?a:b); hurt(z,ref*0.1*l*dt);
+      if(Math.random()<dt*5) parts.push({x:z.x,y:z.y-12,vx:Math.random()*30-15,vy:-40,t:0,life:.3,color:'#c0392b',r:2}); } }
+  if((l=sl('oil'))>0){ specT.oil-=dt; if(specT.oil<=0){ const hit=zombies.filter(z=>!z.dead&&Math.abs(z.x-GATE_X)<130&&z.y<y1+70);
+    if(hit.length){ specT.oil=5; hit.forEach(z=>hurt(z,ref*(0.25+0.12*l))); for(let k=0;k<3;k++) burst(GATE_X-90+k*90,y1+28,'#e8a33a',10); beep(160,.25,'sawtooth',.04,-60); } else specT.oil=0.5; } }
+  if((l=sl('cata'))>0){ specT.cata-=dt; if(specT.cata<=0){ const c=zombies.filter(z=>!z.dead&&z.y>y1+40);
+    if(c.length){ specT.cata=Math.max(1.5,4-0.2*l); const t=c[Math.floor(Math.random()*c.length)]; pots.push({x0:CATA_O.x,y0:CATA_O.y,x1:t.x,y1:t.y,t:0,dur:0.8,dmg:ref*(0.2+0.1*l)}); beep(300,.08,'triangle',.03,-100); } else specT.cata=0.5; } }
+  for(const pt of pots){ pt.t+=dt; if(pt.t>=pt.dur&&!pt.done){ pt.done=true; for(const z of zombies) if(!z.dead&&dist(z.x,z.y,pt.x1,pt.y1)<55) hurt(z,pt.dmg); burst(pt.x1,pt.y1,'#b0a090',16); beep(120,.15,'square',.03,-40); } }
+  pots=pots.filter(p=>!p.done);
+  if((l=sl('gun'))>0){ specT.gun-=dt; if(specT.gun<=0){ const c=zombies.filter(z=>!z.dead&&dist(GUN_O.x,GUN_O.y,z.x,z.y)<320).sort((a,b)=>dist(GUN_O.x,GUN_O.y,a.x,a.y)-dist(GUN_O.x,GUN_O.y,b.x,b.y)).slice(0,3);
+    if(c.length){ specT.gun=1.2; c.forEach(z=>{ hurt(z,ref*(0.15+0.07*l)); tracers.push({x1:GUN_O.x,y1:GUN_O.y,x2:z.x,y2:z.y-8,t:0,c:'#ffb050'}); }); sfx('shotgun'); } else specT.gun=0.3; } }
+  if((l=sl('laser'))>0){ specT.laser-=dt; if(specT.laser<=0){ const o=LASER_O, c=zombies.filter(z=>!z.dead&&dist(o.x,o.y,z.x,z.y)<760);
+    if(c.length){ specT.laser=2; const t=c.reduce((a,b)=>a.y<b.y?a:b), ang=Math.atan2(t.y-8-o.y,t.x-o.x), ex=o.x+Math.cos(ang)*900, ey=o.y+Math.sin(ang)*900;
+      for(const z of c) if(segDist(z.x,z.y-8,o.x,o.y,ex,ey)<22) hurt(z,ref*(0.3+0.12*l));
+      tracers.push({x1:o.x,y1:o.y,x2:ex,y2:ey,t:0,c:'#5ae0f0',w:5}); sfx('laser'); } else specT.laser=0.3; } }
+}
+function skillInfo(){ if(S.phase!=='night') return null;
+  if(sl('blast')>0) return {id:'blast',ready:!blastUsed,text:blastUsed?'💥 Sprengladung leer':'💥 Sprengen'};
+  if(sl('shield')>0) return {id:'shield',ready:shieldCd<=0,text:shieldT>0?'🛡️ Schild aktiv '+Math.ceil(shieldT)+'s':shieldCd>0?'🛡️ Schild '+Math.ceil(shieldCd)+'s':'🛡️ Schild'};
+  return null; }
+function useSkill(){ const k=skillInfo(); if(!k||!k.ready) return; const y1=COMP.y1, ref=zRef();
+  if(k.id==='blast'){ blastUsed=true; const l=sl('blast'); for(const z of zombies) if(!z.dead&&z.y<y1+260) hurt(z,ref*(1.5+0.5*l));
+    for(let i=0;i<7;i++) burst(160+i*113,y1+70+Math.random()*120,'#f08a2a',22); beep(60,.7,'sawtooth',.09,-30); toast('BUMM!',1200); }
+  if(k.id==='shield'){ const l=sl('shield'); shieldT=5+0.3*l; shieldCd=45-2*l; beep(900,.3,'sine',.05,400); toast('Energieschild aktiv!',1500); } }
 function updateNight(dt){
   zSpawnT-=dt;
   if(zSpawnLeft>0&&zSpawnT<=0){ zSpawnT=Math.max(0.8,2.6-S.day*0.05)*(0.6+Math.random()*0.8)*DF().spawn;
@@ -1117,6 +1171,7 @@ function updateNight(dt){
       for(const z of zombies){ if(!z.dead&&dist(z.x,z.y,mn.x,mn.y)<60){ z.hp-=dmg; z.hit=0.15; if(z.hp<=0) killReward(z); } }
       burst(mn.x,mn.y,'#f08a2a',26); burst(mn.x,mn.y,'#3a3a36',14); beep(70,.35,'sawtooth',.07,-40); } }
   mines=mines.filter(m=>!m.boom);
+  updateSpecials(dt);
   const wireY=COMP.y1+90, dps=wireDps();
   for(const z of zombies){
     if(z.hit)z.hit=Math.max(0,z.hit-dt);
@@ -1128,16 +1183,16 @@ function updateNight(dt){
         burst(z.x,z.y-30,'#b04ae0',16); beep(140,.3,'sawtooth',.04,80); }
       for(const o of zombies){ if(o!==z&&!o.dead&&dist(o.x,o.y,z.x,z.y)<130) o.hp=Math.min(o.max,o.hp+o.max*0.04*dt); } }
     if(z.spitter){ const sy=COMP.y1+175;
-      if(z.y>sy+1) moveTo(z,z.tx,sy,z.sp,dt);
+      if(z.y>sy+1) moveTo(z,z.tx,sy,z.sp*specSlow(z),dt);
       else { z.spitT+=dt; z.walk+=dt*2; if(z.spitT>=3){ z.spitT=0; const tl=TURRETS.filter(t=>S.tur[t.id].unlocked&&!(TR[t.id].stun>0));
         const t=tl.length?tl[Math.floor(Math.random()*tl.length)]:null;
         globs.push({x0:z.x,y0:z.y-20,x1:t?t.x:z.x,y1:t?t.y-20:COMP.y1,t:0,dur:1,tur:t?t.id:null}); beep(220,.12,'sine',.03,-120); } }
       continue; }
-    if(z.y>COMP.y1+16) moveTo(z,z.tx,COMP.y1+16,z.sp*(inWire?wireSlow():1),dt);
-    else { z.atk+=dt; S.wallHp-=zWallDmg(S.day)*(z.boss?4:z.brute?3:1)*dt; z.walk+=dt*4; if(z.atk>0.8){z.atk=0; if(Math.random()<.3)beep(90,.08,'sawtooth',.03);} }
+    if(z.y>COMP.y1+16) moveTo(z,z.tx,COMP.y1+16,z.sp*(inWire?wireSlow():1)*specSlow(z),dt);
+    else { z.atk+=dt; if(!(shieldT>0)) S.wallHp-=zWallDmg(S.day)*(z.boss?4:z.brute?3:1)*dt; z.walk+=dt*4; if(z.atk>0.8){z.atk=0; if(Math.random()<.3)beep(90,.08,'sawtooth',.03);} }
   }
   for(const gb of globs){ gb.t+=dt; if(gb.t>=gb.dur&&!gb.hit){ gb.hit=true; burst(gb.x1,gb.y1,'#8ac43a',12);
-      if(gb.tur){ TR[gb.tur].stun=Math.max(1,4*(1-0.1*S.up.light)); } else S.wallHp-=12; } }
+      if(gb.tur){ TR[gb.tur].stun=Math.max(1,4*(1-0.1*S.up.light)); } else if(!(shieldT>0)) S.wallHp-=12; } }
   globs=globs.filter(g=>!g.hit);
   P.cd-=dt;
   if(P.cd<=0){ const t=shoot(P.x,P.y-6,250,gunDmg(),'p'); if(t){P.cd=1/gunRate();P.face=Math.atan2(t.y-P.y,t.x-P.x);P.aimT=0.3;sfx(G.shotgun?'shotgun':'rifle');} }
@@ -1208,6 +1263,7 @@ let tab='team', resetArm=false, prestigeArm=false, codeDraft='';
 function openMenu(t){ initAudio(); if(t) tab=t; resetArm=false; renderMenu(); $('menu').hidden=false; }
 $('btnMenu').onclick=()=>openMenu();
 $('btnNight').onclick=()=>{ initAudio(); if(S.phase==='day'&&!anyModal()) startNight(); };
+$('btnSkill').onclick=()=>{ initAudio(); useSkill(); };
 $('jobPill').onclick=()=>{ jobOpen=!jobOpen; hudT=0; };
 $('hint').onclick=()=>{ hintHideT=0; $('hint').classList.add('gone'); };
 $('menuClose').onclick=()=>{$('menu').hidden=true;};
@@ -1268,6 +1324,8 @@ function renderMenu(){
     for(const u of UPG){ if(!isGlobalUpg(u.id)) continue; if(u.id==='guard'&&!Object.values(G.maps).some(m=>m.guards>0)) continue; upRow(u); }
     body.appendChild(h3('Verteidigung · nur '+MD.name));
     for(const u of UPG){ if(isGlobalUpg(u.id)) continue; if(u.need&&!G.maps[u.need]) continue; upRow(u); }
+    const spl=specList(); if(spl.length){ body.appendChild(h3('Spezial · nur '+MD.name));
+      for(const u of spl){ if(!typeBuilt(u.need)) body.appendChild(row(u.name,'gesperrt',u.desc+'. Wird mit „'+STY[u.need].name+'“ freigeschaltet.',null)); else upRow(u); } }
     if(MD.id==='mine'){
       body.appendChild(h3('Schmiede-Waffen · gelten auf allen Maps'));
       body.appendChild(row('Schrotflinte',G.shotgun?'gekauft':'','Du triffst bis zu 3 Zombies gleichzeitig.',G.shotgun?null:'$'+fmt(shotgunCost()),S.money<shotgunCost(),()=>{ if(S.money<shotgunCost()) return; S.money-=shotgunCost(); G.shotgun=true; beep(500,.2,'square',.05,300); toast('Schrotflinte geschmiedet!'); save(); renderMenu(); }));
@@ -1417,8 +1475,12 @@ function hardGameOver(){
 // ---------- Was ist neu ----------
 const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
 function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-const NEWS_VER='1.3';
+const NEWS_VER='1.4';
 const NEWS_LOG={
+ '1.4':[
+  ['🛡️','Neu: Spezial-Aufrüstungen! Jede Map hat zwei eigene, z. B. Wachhund, Heißes Öl, Sprengladung, Stahlmauer und Laser-Turm. Du findest sie im Menü unter Ausrüstung → „Spezial“.'],
+  ['💥','Sprengladung (Mine) und Energieschild (Labor) löst du nachts selbst aus: Der Knopf erscheint oben neben der Tagesanzeige.']
+ ],
  '1.3':[
   ['🏭','Werkstatt und Labor: Bauen und Ausbauen kostet mehr, dafür gibt es je zwei neue Stationen und ein neues Ziel „Alle Stationsarten auf Stufe 8“ bzw. „Stufe 10“.'],
   ['🌙','Weniger Warten: Werkstatt braucht nur noch 8 statt 12 Nächte, das Labor 10 statt 15. Fehlen nur noch Nächte, leuchtet „Nacht starten“ auf.']
@@ -1827,6 +1889,18 @@ function drawWalls(){
     for(const yy of [COMP.y1+40,COMP.y1+70]){ ctx.beginPath(); for(let x=x0;x<=x1;x+=6){ const off=Math.sin(x*0.5+yy)*3; if(Math.abs(x-GATE_X)<50&&S.phase!=='night') {ctx.moveTo(x,yy+off);continue;} ctx.lineTo(x,yy+off);} ctx.stroke();
       ctx.fillStyle='#3a3a36'; for(let x=x0;x<=x1;x+=60){ if(Math.abs(x-GATE_X)<50&&S.phase!=='night') continue; ctx.fillRect(x-2,yy-8,4,14);} } }
 }
+function drawSpecials(){
+  const y1=COMP.y1, x0=COMP.x0, x1=COMP.x1;
+  if(sl('steel')){ ctx.fillStyle='rgba(120,150,175,.55)'; for(const [ax,bx] of [[x0,GATE_X-GATE_HALF],[GATE_X+GATE_HALF,x1]]){ ctx.fillRect(ax,y1-14,bx-ax,6); ctx.fillStyle='#c8d2dc'; for(let x=ax+10;x<bx;x+=30){ ctx.beginPath(); ctx.arc(x,y1+2,2,0,7); ctx.fill(); } ctx.fillStyle='rgba(120,150,175,.55)'; } }
+  if(sl('hay')){ for(let x=150;x<=850;x+=100){ if(Math.abs(x-GATE_X)<40) continue; const y=y1+150+((x/100)%2)*14; ctx.fillStyle='#c9a24a'; rr(x-16,y-10,32,20,4); ctx.fill(); ctx.strokeStyle='#8a6a28'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(x-8,y-10); ctx.lineTo(x-8,y+10); ctx.moveTo(x+8,y-10); ctx.lineTo(x+8,y+10); ctx.stroke(); } }
+  if(sl('lore')){ for(const x of [GATE_X-150,GATE_X+150,GATE_X-300,GATE_X+300]){ const y=y1+62; ctx.fillStyle='#5a4a3a'; rr(x-20,y-10,40,16,3); ctx.fill(); ctx.fillStyle='#2a2a2a'; ctx.beginPath(); ctx.arc(x-11,y+8,4,0,7); ctx.arc(x+11,y+8,4,0,7); ctx.fill(); ctx.fillStyle='#7a6a5a'; ctx.fillRect(x-17,y-12,34,4); } }
+  if(sl('dog')){ const x=GATE_X+24, y=y1-30; ctx.fillStyle='#7a5230'; rr(x-9,y-5,18,9,4); ctx.fill(); ctx.beginPath(); ctx.arc(x+10,y-6,5,0,7); ctx.fill(); ctx.fillStyle='#4a3018'; ctx.fillRect(x+12,y-13,3,5); ctx.fillRect(x-7,y+3,3,5); ctx.fillRect(x+4,y+3,3,5); }
+  if(sl('oil')){ const x=GATE_X+GATE_HALF, y=y1-28; ctx.fillStyle='#2a2a2a'; rr(x-9,y-6,18,13,4); ctx.fill(); ctx.fillStyle='#e8a33a'; ctx.fillRect(x-7,y-7,14,3); }
+  if(sl('cata')){ const {x,y}=CATA_O; ctx.fillStyle='#6b4a2a'; ctx.fillRect(x-12,y+2,24,6); ctx.strokeStyle='#8a6a3a'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x,y+4); ctx.lineTo(x+10,y-12); ctx.stroke(); ctx.fillStyle='#6a6a70'; ctx.beginPath(); ctx.arc(x+11,y-14,4,0,7); ctx.fill(); }
+  if(sl('gun')){ const {x,y}=GUN_O; ctx.fillStyle='#4a4f58'; rr(x-9,y-6,18,12,3); ctx.fill(); ctx.fillStyle='#2a2e34'; ctx.fillRect(x-2,y+2,4,12); ctx.fillStyle='#ffb050'; ctx.fillRect(x-3,y-3,6,2); }
+  if(sl('laser')){ const {x,y}=LASER_O; ctx.fillStyle='#3a4450'; rr(x-9,y-4,18,14,3); ctx.fill(); ctx.fillStyle='#5ae0f0'; ctx.beginPath(); ctx.arc(x,y-4,5,0,7); ctx.fill(); }
+  if(sl('shield')){ ctx.fillStyle='#5ae0f0'; for(const x of [x0+6,x1-6]){ ctx.fillRect(x-3,y1-24,6,10); } }
+}
 function drawArrow(x,y,time){
   const b=Math.sin(time*6)*6; ctx.fillStyle='#f2c14e'; ctx.strokeStyle='#2a1f08'; ctx.lineWidth=2.5;
   ctx.beginPath(); ctx.moveTo(x,y-34+b); ctx.lineTo(x-12,y-54+b); ctx.lineTo(x-5,y-54+b); ctx.lineTo(x-5,y-70+b); ctx.lineTo(x+5,y-70+b); ctx.lineTo(x+5,y-54+b); ctx.lineTo(x+12,y-54+b); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1879,12 +1953,14 @@ function render(time){
   for(const z of zombies) ents.push({y:z.y,f:()=>zombie(z)});
   ents.push({y:P.y,f:()=>{person(P,'#c9642f','#e8c4a0',{pack:true,gun:S.phase==='night',hat:'#6a4a2a',carry:P.carry});
     if(P.carry.length>=playerCap()){ctx.fillStyle='#e0503a';ctx.font='700 9px "Chakra Petch", sans-serif';ctx.textAlign='center';ctx.fillText('VOLL',P.x,P.y-46-P.carry.length*11);} }});
-  ents.push({y:COMP.y1+2,f:drawWalls});
+  ents.push({y:COMP.y1+2,f:()=>{ drawWalls(); drawSpecials(); }});
   ents.sort((a,b)=>a.y-b.y); for(const e of ents) e.f();
   for(const c of customers) if(c.state==='queue'||c.state==='walk') drawWant(c);
 
   for(const gb of globs){ const k=Math.min(1,gb.t/gb.dur); const x=gb.x0+(gb.x1-gb.x0)*k, y=gb.y0+(gb.y1-gb.y0)*k-Math.sin(k*Math.PI)*60; ctx.fillStyle='#8ac43a'; ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); }
-  for(const t of tracers){ctx.strokeStyle=t.c;ctx.globalAlpha=1-t.t/0.09;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(t.x1,t.y1);ctx.lineTo(t.x2,t.y2);ctx.stroke();} ctx.globalAlpha=1;
+  for(const pt of pots){ const k=Math.min(1,pt.t/pt.dur); const x=pt.x0+(pt.x1-pt.x0)*k, y=pt.y0+(pt.y1-pt.y0)*k-Math.sin(k*Math.PI)*90; ctx.fillStyle='#6a6a70'; ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.fill(); ctx.fillStyle='#3a3a3e'; ctx.fillRect(x-7,y-3,14,2); }
+  if(shieldT>0){ ctx.fillStyle='rgba(90,224,240,'+(0.18+0.08*Math.sin(time*8))+')'; ctx.fillRect(COMP.x0-8,COMP.y1-26,COMP.x1-COMP.x0+16,46); ctx.strokeStyle='rgba(90,224,240,.8)'; ctx.lineWidth=2; ctx.strokeRect(COMP.x0-8,COMP.y1-26,COMP.x1-COMP.x0+16,46); }
+  for(const t of tracers){ctx.strokeStyle=t.c;ctx.globalAlpha=1-t.t/0.09;ctx.lineWidth=t.w||2.5;ctx.beginPath();ctx.moveTo(t.x1,t.y1);ctx.lineTo(t.x2,t.y2);ctx.stroke();} ctx.globalAlpha=1;
   for(const p of parts){
     if(p.t<0) continue;
     if(p.coin){ const k=Math.min(1,p.t/p.life), e=k*k; const x=p.x+(P.x-p.x)*e, y=p.y+(P.y-20-p.y)*e-Math.sin(k*Math.PI)*30;
@@ -1923,7 +1999,8 @@ function hud(dt){
   if(S.phase==='day'){ const r=Math.max(0,Math.ceil(DAY_LEN-S.phaseT)); setText($('dayLbl'),'Tag '+S.day);
     setText($('dayInfo'),(isBossNight(S.day)?'Boss in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true;
     $('btnNight').hidden=S.flags.sold<1; $('btnNight').classList.toggle('pulse',onlyNightsLeft()); setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
-  else { $('btnNight').hidden=true; setText($('dayLbl'),(isBossNight(S.day)?'Boss ':'Nacht ')+S.day); setText($('dayInfo'),(zombies.length+zSpawnLeft)+' Zombies · Mauer '+Math.max(0,Math.ceil(S.wallHp))+(G.ammo>=1?' · Mun. '+Math.floor(G.ammo):''));
+  { const k=skillInfo(), b=$('btnSkill'); b.hidden=!k; if(k){ setText(b,k.text); b.disabled=!k.ready; } }
+  if(S.phase==='day'){} else { $('btnNight').hidden=true; setText($('dayLbl'),(isBossNight(S.day)?'Boss ':'Nacht ')+S.day); setText($('dayInfo'),(zombies.length+zSpawnLeft)+' Zombies · Mauer '+Math.max(0,Math.ceil(S.wallHp))+(G.ammo>=1?' · Mun. '+Math.floor(G.ammo):''));
     $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
   const ct=S.contract, jp=$('jobPill');
   if(ct){ jp.hidden=false; const r=Math.max(0,Math.ceil(ct.t));
@@ -1993,6 +2070,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.3</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.4a</div>
 </body>
 </html>
