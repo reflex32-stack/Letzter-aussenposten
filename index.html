@@ -196,7 +196,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   <div class="sheet" role="dialog" aria-labelledby="nTitle">
     <h2 id="nTitle">Neu</h2>
     <ul id="nBody" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;color:var(--muted);font-size:14px;line-height:1.45"></ul>
-    <button class="btn" id="nOk">Weiter spielen</button>
+    <div class="row-end"><button class="btn dark" id="nDiscord">💬 Zum Discord</button><button class="btn" id="nOk">Weiter spielen</button></div>
   </div>
 </div>
 
@@ -1255,6 +1255,7 @@ function renderMenu(){
   }
   if(tab==='gear'){
     body.appendChild(row('Ton',soundOn?'an':'aus','Soundeffekte im Spiel',soundOn?'Ton aus':'Ton an',false,()=>{ toggleSound(); renderMenu(); }));
+    body.appendChild(row('💬 Discord','Community','Updates, Hilfe und Feedback – sag uns, was dir gefällt oder fehlt!','Öffnen',false,()=>{ openDiscord(); }));
     body.appendChild(row('Schwierigkeit',DF().name,S.phase==='night'?'Kann nur tagsüber geändert werden.':'Wie hart die Nächte sind und was die Verteidigung kostet.','Ändern',S.phase==='night',()=>{ if(S.phase==='night') return; $('menu').hidden=true; showDiff(null); }));
     body.appendChild(row('Was ist neu?','v'+NEWS_VER,'Die Änderungen des letzten Updates','Anzeigen',false,()=>{ $('menu').hidden=true; showNews(null,Object.keys(NEWS_LOG)[1]); }));
     const upRow=u=>{ const l=upLv(u.id), max=l>=u.max, c=upgCost(u);
@@ -1411,8 +1412,13 @@ function hardGameOver(){
   $('oOk').onclick=()=>{ initAudio(); $('over').hidden=true; showDiff(null); };
 }
 // ---------- Was ist neu ----------
-const NEWS_VER='1.2';
+const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
+function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+const NEWS_VER='1.2.2';
 const NEWS_LOG={
+ '1.2.2':[
+  ['💬','Neu: Unser Discord-Server! Dort gibt es Updates, Hilfe und ein Forum für dein Feedback. Du findest ihn jederzeit im Menü unter Ausrüstung → „Discord“.']
+ ],
  '1.2':[
   ['🎚️','Neu: Schwierigkeitsgrade Einfach, Mittel und Schwer. Du wählst gleich, wie hart deine Nächte sein sollen, und kannst es später im Menü ändern. Achtung: Auf Schwer kostet eine gefallene Mauer den ganzen Spielstand!'],
   ['🔧','Neu: Mechaniker reparieren nachts automatisch die Mauer (Menü → Team). Du selbst reparierst aber schneller.'],
@@ -1435,7 +1441,7 @@ function showNews(after,from){
   for(const [ic,t] of NEWS_LOG[v]){ const li=document.createElement('li'); li.style.cssText='display:flex;gap:10px;align-items:flex-start';
     const a=document.createElement('span'); a.textContent=ic; a.style.cssText='font-size:18px;line-height:1.2;flex:none';
     const b=document.createElement('span'); b.textContent=t; li.append(a,b); ul.appendChild(li); } });
-  $('news').hidden=false;
+  $('news').hidden=false; $('nDiscord').onclick=()=>openDiscord();
   $('nOk').onclick=()=>{ initAudio(); $('news').hidden=true; G.seenVer=NEWS_VER; save(); if(after) after(); };
 }
 function showIntro(){ $('iBody').innerHTML=MD.intro; $('intro').hidden=false; }
@@ -1984,7 +1990,7 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
   <span>Neue Version verfügbar</span><button id="updBtn" style="border:0;border-radius:8px;padding:8px 12px;background:#241c0e;color:#f2c14e;font:700 14px 'Chakra Petch',system-ui,sans-serif">Jetzt aktualisieren</button>
 </div>
 <script>
-window.APP_VERSION='1.2.1';
+window.APP_VERSION='1.2.2';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   let waiting=null, reloading=false, regRef=null;
   const bar=document.getElementById('updBar');
