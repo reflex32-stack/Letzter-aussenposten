@@ -1984,18 +1984,33 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
   <span>Neue Version verfügbar</span><button id="updBtn" style="border:0;border-radius:8px;padding:8px 12px;background:#241c0e;color:#f2c14e;font:700 14px 'Chakra Petch',system-ui,sans-serif">Jetzt aktualisieren</button>
 </div>
 <script>
-window.APP_VERSION='1.2.0';
+window.APP_VERSION='1.2.1';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  let waiting=null, reloading=false;
+  let waiting=null, reloading=false, regRef=null;
   const bar=document.getElementById('updBar');
-  const show=w=>{ waiting=w; bar.hidden=false; };
-  document.getElementById('updBtn').onclick=()=>{ if(waiting) waiting.postMessage('SKIP_WAITING'); };
+  const show=w=>{ if(w) waiting=w; bar.hidden=false; };
+  const newer=(a,b)=>{ const x=a.split('.').map(Number), y=b.split('.').map(Number); for(let i=0;i<3;i++){ if((x[i]||0)!==(y[i]||0)) return (x[i]||0)>(y[i]||0); } return false; };
+  document.getElementById('updBtn').onclick=()=>{
+    if(waiting){ waiting.postMessage('SKIP_WAITING'); setTimeout(()=>{ if(!reloading) location.reload(); },2500); }
+    else location.reload();
+  };
   navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(reloading) return; reloading=true; location.reload(); });
-  navigator.serviceWorker.register('sw.js').then(reg=>{
+  // Eigene Versionsprüfung – wichtig für iPhones, die Web-Apps nur selten selbst prüfen
+  async function checkVersion(){
+    try{
+      const t=await fetch('sw.js?check='+Date.now(),{cache:'no-store'}).then(r=>r.text());
+      const m=t.match(/VERSION='([0-9.]+)'/);
+      if(m&&newer(m[1],window.APP_VERSION)){ if(regRef) await regRef.update().catch(()=>{}); show(regRef&&regRef.waiting); }
+    }catch(e){}
+  }
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+    regRef=reg;
     if(reg.waiting&&navigator.serviceWorker.controller) show(reg.waiting);
     reg.addEventListener('updatefound',()=>{ const nw=reg.installing; nw.addEventListener('statechange',()=>{ if(nw.state==='installed'&&navigator.serviceWorker.controller) show(nw); }); });
-    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) reg.update().catch(()=>{}); });
-    setInterval(()=>reg.update().catch(()=>{}),30*60*1000);
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ reg.update().catch(()=>{}); checkVersion(); } });
+    addEventListener('pageshow',()=>checkVersion());
+    setInterval(()=>{ reg.update().catch(()=>{}); checkVersion(); },15*60*1000);
+    setTimeout(checkVersion,3000);
   }).catch(()=>{});
 }
 </script>
