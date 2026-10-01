@@ -925,6 +925,7 @@ function updateWorker(w,dt){
   }
   if(j.type==='deposit'){ deposit(w); w.job=null; w.think=0.2; }
 }
+let depT=0; const DEP_TIME=0.45;
 function deposit(ent){
   const cap=lagerCap(); let n=0;
   ent.carry=ent.carry.filter(g=>{ if(!isDep(g)||!hasRoom(g)) return true;
@@ -1033,7 +1034,7 @@ function update(dt){
   for(const i of INST){ if(!S.inst[i.id].unlocked) continue; const sp=spotOf(i); const dd=Math.min(dist(P.x,P.y,sp.x,sp.y),dist(P.x,P.y,i.x,i.y));
     if(dd<60&&dd<best){best=dd;near={inst:i};} }
   for(const t of TURRETS){ if(!S.tur[t.id].unlocked) continue; const dd=dist(P.x,P.y,t.x,t.y); if(dd<70&&dd<best){best=dd;near={tur:t};} }
-  const onStaff=Math.abs(P.y-STAFF_Y)<26&&P.x>COUNTER.x0+10&&P.x<COUNTER.x1-10;
+  const onStaff=Math.abs(P.y-STAFF_Y)<18&&P.x>COUNTER.x0+10&&P.x<COUNTER.x1-10;
   if(onStaff&&(!near||best>30)) near={lager:true};
 
   // --- Produzieren
@@ -1043,7 +1044,8 @@ function update(dt){
   if(playerSpot){ const i=playerSpot, rt=IR[i.id];
     if(canMake(P,i.type,playerCap())&&(!rt.user||rt.user===P)){ if(stationStep(P,i,dt,G.player.lvl)){ S.flags.made++; gainXp(G.player,1,P); beep(620,.05,'triangle',.035,200); const og=STY[i.type].out; if(!isInputAnywhere(og)) beltPut(i,P,og); } }
     else if(rt.user===P){ rt.user=null; rt.prog=0; } }
-  if(onStaff&&P.carry.length) deposit(P);
+  // Abgabe erst nach kurzem Stehenbleiben – Vorbeilaufen gibt nichts ab
+  if(onStaff&&P.carry.some(g=>isDep(g)&&hasRoom(g))){ depT+=dt; if(depT>=DEP_TIME){ deposit(P); depT=0; } } else depT=0;
   // --- Geld (Kassen) bzw. Tische abräumen
   for(let k=0;k<LANES.length;k++){ const s=S.lanes[k]; if(!s.unlocked||s.pile<=0) continue; const pp=lanePile(k);
     if(dist(P.x,P.y,pp.x,pp.y)<magnetR()){ S.money+=s.pile; S.flags.collected++; coinsTo(pp.x,pp.y,Math.min(8,s.pileN));
@@ -1424,8 +1426,11 @@ function hardGameOver(){
 // ---------- Was ist neu ----------
 const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
 function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-const NEWS_VER='1.3';
+const NEWS_VER='1.3.1';
 const NEWS_LOG={
+ '1.3.1':[
+  ['📦','Kein versehentliches Abgeben mehr: Deine Waren landen erst im Lager, wenn du kurz hinter der Theke stehen bleibst (der Kreis füllt sich). Vorbeilaufen gibt nichts ab.']
+ ],
  '1.3':[
   ['🏭','Werkstatt und Labor: Bauen und Ausbauen kostet mehr, dafür gibt es je zwei neue Stationen und ein neues Ziel „Alle Stationsarten auf Stufe 8“ bzw. „Stufe 10“.'],
   ['🌙','Weniger Warten: Werkstatt braucht nur noch 8 statt 12 Nächte, das Labor 10 statt 15. Fehlen nur noch Nächte, leuchtet „Nacht starten“ auf.']
@@ -1747,8 +1752,9 @@ function drawPad(x,y,w,h,name,remain,frac,active,small){
 }
 function drawCounter(){
   const {x0,x1,y0,y1}=COUNTER;
-  const onStaff=Math.abs(P.y-STAFF_Y)<26&&P.x>x0+10&&P.x<x1-10;
+  const onStaff=Math.abs(P.y-STAFF_Y)<18&&P.x>x0+10&&P.x<x1-10;
   ctx.fillStyle=onStaff&&P.carry.length?'rgba(242,193,78,.22)':'rgba(242,193,78,.08)'; rr(x0+6,STAFF_Y-16,x1-x0-12,30,8); ctx.fill();
+  if(depT>0){ const k=Math.min(1,depT/DEP_TIME); ctx.strokeStyle='#f2c14e'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(P.x,P.y+2,17,-Math.PI/2,-Math.PI/2+Math.PI*2*k); ctx.stroke(); }
   ctx.fillStyle='rgba(0,0,0,.28)'; rr(x0+4,y0+6,x1-x0,y1-y0,5); ctx.fill();
   ctx.fillStyle='#6b4e2e'; rr(x0,y0,x1-x0,y1-y0,5); ctx.fill();
   ctx.fillStyle='#8a6a42'; rr(x0+3,y0+3,x1-x0-6,y1-y0-12,3); ctx.fill();
@@ -2005,7 +2011,7 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
   <span>Neue Version verfügbar</span><button id="updBtn" style="border:0;border-radius:8px;padding:8px 12px;background:#241c0e;color:#f2c14e;font:700 14px 'Chakra Petch',system-ui,sans-serif">Jetzt aktualisieren</button>
 </div>
 <script>
-window.APP_VERSION='1.3.0';
+window.APP_VERSION='1.3.1';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   let waiting=null, reloading=false, regRef=null;
   const bar=document.getElementById('updBar');
