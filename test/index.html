@@ -189,6 +189,15 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   </div>
 </div>
 
+<div class="modal" id="endres" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="eTitle">
+    <h2 id="eTitle">Endlos-Verteidigung</h2>
+    <p id="eText"></p>
+    <textarea id="eShareTxt" rows="3" hidden style="width:100%;box-sizing:border-box;background:var(--panel2);color:var(--bone);border:1.5px solid var(--line);border-radius:8px;padding:8px;font:12px/1.4 var(--body)"></textarea>
+    <div class="row-end"><button class="btn dark" id="eShare">🏆 Für Discord teilen</button><button class="btn" id="eOk">Weiter</button></div>
+  </div>
+</div>
+
 <div class="modal" id="news" hidden>
   <div class="sheet" role="dialog" aria-labelledby="nTitle">
     <h2 id="nTitle">Neu</h2>
@@ -538,7 +547,7 @@ let G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:fals
 function load(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
-    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.seenVer=o.seenVer||'1.0'; G.diff=DIFFS[o.diff]?o.diff:null; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
+    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.seenVer=o.seenVer||'1.0'; G.diff=DIFFS[o.diff]?o.diff:null; G.endless=o.endless||null; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
       for(const id in (o.maps||{})) if(MAPDEFS[id]) G.maps[id]=fixMap(o.maps[id],id); }
     else { const old=localStorage.getItem(OLD_KEY);
       if(old){ const o=JSON.parse(old); G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.maps.farm=fixMap(o,'farm'); } }
@@ -548,7 +557,7 @@ function load(){
     for(const id in G.maps){ const u=G.maps[id].up||{}; for(const k of GLOBAL_UPG) G.gup[k]=Math.max(G.gup[k],u[k]||0); } }
   S=G.maps[G.cur];
 }
-function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),seenVer:G.seenVer||NEWS_VER,diff:G.diff,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
+function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),seenVer:G.seenVer||NEWS_VER,diff:G.diff,endless:G.endless||null,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
   for(const id in G.maps){ const m=Object.assign({},G.maps[id]); delete m.player; o.maps[id]=m; } return o; }
 function save(){ S.last=Date.now(); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saveObj())); }catch(e){} }
 // ---------- Spielstand-Code (zwischen Geräten übertragen) ----------
@@ -653,6 +662,8 @@ let workers=[], guards=[], cashiers=[];
 let customers=[], zombies=[], tracers=[], parts=[], floats=[];
 let mines=[], globs=[];
 let spawnT=1, zSpawnLeft=0, zSpawnT=0, repairing=false, mechWork=false;
+let endless=null; // läuft gerade die Endlos-Verteidigung?
+const ND=()=>endless?endless.eday:S.day, bossNow=()=>endless?(endless.wave>0&&endless.wave%5===0):isBossNight(S.day);
 let specT={oil:0,cata:0,gun:0,laser:0}, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
 const MECH_POS=[{x:445,y:856},{x:555,y:856}];
 const spotOf=i=>({x:i.x,y:i.y+SPOT_DY});
@@ -709,7 +720,7 @@ function drawGround(){
 //  EINGABE
 // =====================================================================
 const keys={};
-const anyModal=()=>!$('menu').hidden||!$('news').hidden||!$('diff').hidden||!$('over').hidden||!$('welcome').hidden||!$('intro').hidden||!$('world').hidden;
+const anyModal=()=>!$('menu').hidden||!$('endres').hidden||!$('news').hidden||!$('diff').hidden||!$('over').hidden||!$('welcome').hidden||!$('intro').hidden||!$('world').hidden;
 addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(anyModal()){ if(k==='escape') closeModals(); return; }
@@ -1108,8 +1119,8 @@ function endNight(win){
   if(win){ S.nights++; const bonus=Math.round(20*(1+0.5*(S.day-2))*MD.num); S.money+=bonus; S.lifetime+=bonus; toast('Nacht überstanden! Bonus +$'+fmt(bonus),3000); beep(520,.15,'square',.05,400);}
   save();
 }
-function killReward(z){ if(z.dead) return; z.dead=true; let r=Math.round(3*(1+0.3*(S.day-1))*MD.num);
-  if(z.boss){ r=Math.round(150*(1+0.6*(S.day/5-1))*MD.num); S.bossWins++; toast('Boss besiegt! +$'+fmt(r),3000); burst(z.x,z.y-20,'#f2c14e',40); }
+function killReward(z){ if(z.dead) return; z.dead=true; let r=Math.round(3*(1+0.3*(ND()-1))*MD.num);
+  if(z.boss){ r=Math.round(150*(1+0.6*(ND()/5-1))*MD.num); S.bossWins++; toast('Boss besiegt! +$'+fmt(r),3000); burst(z.x,z.y-20,'#f2c14e',40); }
   S.money+=r; S.lifetime+=r; addFloat(z.x,z.y-24,'+$'+fmt(r),'#9fc45a'); burst(z.x,z.y,'#5c7a3a',12); }
 function shoot(x,y,range,dmg,from){
   if(from==='g'&&G.crossbow){ range+=60; dmg*=1.6; }
@@ -1124,7 +1135,7 @@ function shoot(x,y,range,dmg,from){
 }
 function hurt(z,d){ if(z.dead) return; z.hp-=d; z.hit=0.12; if(z.hp<=0) killReward(z); }
 function segDist(px,py,ax,ay,bx,by){ const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy; let t=l?((px-ax)*dx+(py-ay)*dy)/l:0; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-ax-t*dx,py-ay-t*dy); }
-const zRef=()=>zHp(S.day)*(1+0.25*(MD.num-1)); // Leben eines normalen Zombies hier und heute
+const zRef=()=>zHp(ND())*(1+0.25*(MD.num-1)); // Leben eines normalen Zombies hier und heute
 function specSlow(z){ const y1=COMP.y1; let m=1;
   if(sl('hay')&&z.y>y1+110&&z.y<y1+200) m*=1-Math.min(0.5,0.06*sl('hay'));
   if(sl('lore')&&z.y<y1+100) m*=1-Math.min(0.6,0.08*sl('lore'));
@@ -1157,15 +1168,44 @@ function useSkill(){ const k=skillInfo(); if(!k||!k.ready) return; const y1=COMP
   if(k.id==='blast'){ blastUsed=true; const l=sl('blast'); for(const z of zombies) if(!z.dead&&z.y<y1+260) hurt(z,ref*(1.5+0.5*l));
     for(let i=0;i<7;i++) burst(160+i*113,y1+70+Math.random()*120,'#f08a2a',22); beep(60,.7,'sawtooth',.09,-30); toast('BUMM!',1200); }
   if(k.id==='shield'){ const l=sl('shield'); shieldT=5+0.3*l; shieldCd=45-2*l; beep(900,.3,'sine',.05,400); toast('Energieschild aktiv!',1500); } }
+// ---------- Endlos-Verteidigung (Labor) ----------
+function endG(){ if(!G.endless) G.endless={best:{},stars:0}; return G.endless; }
+const endBest=()=>Math.max(0,...Object.values(endG().best));
+const endUnlocked=()=>MD.id==='labor'&&!!S.flags.mapDone;
+const END_PAUSE=20;
+function startEndless(){ if(!endUnlocked()||S.phase!=='day') return;
+  $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:4,eday:S.day};
+  toast('Endlos-Verteidigung! Halte so viele Wellen wie möglich.',3200); }
+function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*1.5);
+  zSpawnLeft=zCount(ND())+(bossNow()?1:0); zSpawnT=1; mines=[]; for(let i=0;i<2*S.up.mine;i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
+  blastUsed=false; specT={oil:1,cata:1,gun:0,laser:0};
+  toast((bossNow()?'Bosswelle ':'Welle ')+endless.wave+'!',1800); beep(180,.4,'sawtooth',.05,-80); }
+function waveCleared(){ const w=endless.wave, e=endG(), d=G.diff||'easy';
+  const bonus=Math.round(400*w*MD.num); S.money+=bonus; S.lifetime+=bonus;
+  if(w>(e.best[d]||0)) e.best[d]=w;
+  const st=Math.floor(endBest()/10); let msg='Welle '+w+' geschafft! +$'+fmt(bonus);
+  if(st>e.stars){ const n=st-e.stars; e.stars=st; G.stars+=n; msg+=' · +'+n+' ★ für deinen Rekord!'; beep(880,.4,'triangle',.06,440); }
+  toast(msg,3000); endless.pause=END_PAUSE; save(); }
+function endEndless(){ const done=endless.wave-1, e=endG(), d=G.diff||'easy';
+  if(done>(e.best[d]||0)) e.best[d]=done;
+  endless=null; zombies=[]; mines=[]; globs=[]; pots=[]; for(const k in TR) TR[k].stun=0; S.phase='day'; S.phaseT=0; S.wallHp=wallMax(); save();
+  showEndResult(done); }
+function shareText(n){ return `🏆 Letzter Außenposten – Endlos-Verteidigung: Welle ${n} auf ${DF().name} geschafft! Schaffst du mehr? https://reflex32-stack.github.io/Letzter-aussenposten/`; }
+function copyShare(n,ta){ const t=shareText(n); const done=()=>toast('Text kopiert – jetzt in Discord einfügen!',2400);
+  try{ navigator.clipboard.writeText(t).then(done,()=>{ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } toast('Text markiert – jetzt kopieren',2400); }); }catch(e){ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } } }
+function showEndResult(n){ const d=G.diff||'easy', best=endG().best[d]||0;
+  $('eTitle').textContent='Die Mauer ist gefallen'; $('eText').textContent=`Du hast ${n} ${n===1?'Welle':'Wellen'} überstanden. Dein Rekord auf ${DF().name}: ${best}. Dein Spielstand bleibt erhalten.`;
+  const ta=$('eShareTxt'); ta.hidden=true; $('eShare').onclick=()=>copyShare(n,ta); $('eOk').onclick=()=>{ $('endres').hidden=true; };
+  $('endres').hidden=false; beep(120,.6,'sawtooth',.05,-60); }
 function updateNight(dt){
   zSpawnT-=dt;
-  if(zSpawnLeft>0&&zSpawnT<=0){ zSpawnT=Math.min(Math.max(0.8,2.6-S.day*0.05),34/Math.max(1,zCount(S.day)))*(0.6+Math.random()*0.8)*DF().spawn; // alle Zombies kommen in gut 30 s
-   const grp=1+(S.day>2&&Math.random()<DF().group?1+Math.floor(Math.random()*2):0);
+  if(zSpawnLeft>0&&zSpawnT<=0){ zSpawnT=Math.min(Math.max(0.8,2.6-ND()*0.05),34/Math.max(1,zCount(ND())))*(0.6+Math.random()*0.8)*DF().spawn; // alle Zombies kommen in gut 30 s
+   const grp=1+(ND()>2&&Math.random()<DF().group?1+Math.floor(Math.random()*2):0);
    for(let gi=0;gi<grp&&zSpawnLeft>0;gi++){ zSpawnLeft--;
     const sm=DF().spec, zr=(MD.zRunner||0)*sm, zb=(MD.zBrute||0)*sm, zs=(MD.zSpit||0)*sm;
-    const boss=isBossNight(S.day)&&zSpawnLeft===0, roll=Math.random(), runner=!boss&&roll<zr, brute=!boss&&!runner&&roll<zr+zb, spitter=!boss&&!runner&&!brute&&roll<zr+zb+zs;
-    const x=boss?GATE_X+(Math.random()*120-60):150+Math.random()*700, hp=zHp(S.day)*(boss?20:runner?0.5:brute?3:spitter?1.2:1)*(1+0.25*(MD.num-1));
-    const sp=boss?18:Math.min(38,19+Math.random()*8+S.day*0.35)*(runner?1.9:brute?0.6:1);
+    const boss=bossNow()&&zSpawnLeft===0, roll=Math.random(), runner=!boss&&roll<zr, brute=!boss&&!runner&&roll<zr+zb, spitter=!boss&&!runner&&!brute&&roll<zr+zb+zs;
+    const x=boss?GATE_X+(Math.random()*120-60):150+Math.random()*700, hp=zHp(ND())*(boss?20:runner?0.5:brute?3:spitter?1.2:1)*(1+0.25*(MD.num-1));
+    const sp=boss?18:Math.min(38,19+Math.random()*8+ND()*0.35)*(runner?1.9:brute?0.6:1);
     zombies.push({x,y:H+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,x+(GATE_X-x)*0.35)),hp,max:hp,boss,leader:boss&&!!MD.leader,sumT:0,runner,brute,spitter,spitT:Math.random()*2,sp,walk:Math.random()*6,face:-Math.PI/2,atk:0});
     if(boss){ toast(MD.leader?'Der Anführer ist da! Er ruft Verstärkung.':'Der Boss ist da!',2200); beep(80,.8,'sawtooth',.07,-30); } } }
   for(const mn of mines){ if(mn.boom) continue;
@@ -1180,8 +1220,8 @@ function updateNight(dt){
     const inWire=S.up.wire>0&&z.y<wireY;
     if(inWire&&dps){ z.hp-=dps*dt; if(z.hp<=0){ killReward(z); continue; } }
     if(z.leader){ z.sumT+=dt;
-      if(z.sumT>=6&&zombies.length<40){ z.sumT=0; for(let k=0;k<2;k++){ const hp=zHp(S.day)*(1+0.25*(MD.num-1));
-        zombies.push({x:z.x+(Math.random()*60-30),y:z.y+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,z.x+(Math.random()*160-80))),hp,max:hp,sp:Math.min(38,22+S.day*0.35),walk:0,face:-Math.PI/2,atk:0,spitT:0}); }
+      if(z.sumT>=6&&zombies.length<40){ z.sumT=0; for(let k=0;k<2;k++){ const hp=zHp(ND())*(1+0.25*(MD.num-1));
+        zombies.push({x:z.x+(Math.random()*60-30),y:z.y+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,z.x+(Math.random()*160-80))),hp,max:hp,sp:Math.min(38,22+ND()*0.35),walk:0,face:-Math.PI/2,atk:0,spitT:0}); }
         burst(z.x,z.y-30,'#b04ae0',16); beep(140,.3,'sawtooth',.04,80); }
       for(const o of zombies){ if(o!==z&&!o.dead&&dist(o.x,o.y,z.x,z.y)<130) o.hp=Math.min(o.max,o.hp+o.max*0.04*dt); } }
     if(z.spitter){ const sy=COMP.y1+175;
@@ -1191,7 +1231,7 @@ function updateNight(dt){
         globs.push({x0:z.x,y0:z.y-20,x1:t?t.x:z.x,y1:t?t.y-20:COMP.y1,t:0,dur:1,tur:t?t.id:null}); beep(220,.12,'sine',.03,-120); } }
       continue; }
     if(z.y>COMP.y1+16) moveTo(z,z.tx,COMP.y1+16,z.sp*(inWire?wireSlow():1)*specSlow(z),dt);
-    else { z.atk+=dt; if(!(shieldT>0)) S.wallHp-=zWallDmg(S.day)*(z.boss?4:z.brute?3:1)*dt; z.walk+=dt*4; if(z.atk>0.8){z.atk=0; if(Math.random()<.3)beep(90,.08,'sawtooth',.03);} }
+    else { z.atk+=dt; if(!(shieldT>0)) S.wallHp-=zWallDmg(ND())*(z.boss?4:z.brute?3:1)*dt; z.walk+=dt*4; if(z.atk>0.8){z.atk=0; if(Math.random()<.3)beep(90,.08,'sawtooth',.03);} }
   }
   for(const gb of globs){ gb.t+=dt; if(gb.t>=gb.dur&&!gb.hit){ gb.hit=true; burst(gb.x1,gb.y1,'#8ac43a',12);
       if(gb.tur){ TR[gb.tur].stun=Math.max(1,4*(1-0.1*S.up.light)); } else if(!(shieldT>0)) S.wallHp-=12; } }
@@ -1209,6 +1249,10 @@ function updateNight(dt){
     if(w.cd<=0){ const z=shoot(w.x,w.y-22,700,guardDmg()*1.2,'r'); if(z){ w.cd=1; sfx('laser'); } } }
   for(const g of guards){ g.cd-=dt; if(g.cd<=0){ const z=shoot(g.x,g.y-14,240,guardDmg(),'g'); if(z){ g.cd=1/1.3; g.face=Math.atan2(z.y-g.y,z.x-g.x); sfx(G.crossbow?'bow':'guard'); } } }
   zombies=zombies.filter(z=>!z.dead);
+  if(endless){ if(S.wallHp<=0){ endEndless(); return; }
+    if(endless.pause>0){ endless.pause-=dt; if(endless.pause<=0) nextWave(); }
+    else if(zSpawnLeft===0&&zombies.length===0) waveCleared();
+    return; }
   if(S.wallHp<=0&&G.diff==='hard'){ hardGameOver(); return; }
   if(S.wallHp<=0){ const loss=Math.floor(S.money*DF().loss); S.money-=loss; zombies=[];
     S.phase='day'; S.phaseT=0; S.day++; S.wallHp=wallMax();
@@ -1264,7 +1308,7 @@ function refreshCtx(){
 let tab='team', resetArm=false, prestigeArm=false, codeDraft='';
 function openMenu(t){ initAudio(); if(t) tab=t; resetArm=false; renderMenu(); $('menu').hidden=false; }
 $('btnMenu').onclick=()=>openMenu();
-$('btnNight').onclick=()=>{ initAudio(); if(S.phase==='day'&&!anyModal()) startNight(); };
+$('btnNight').onclick=()=>{ initAudio(); if(endless&&endless.pause>0){ endless.pause=0; nextWave(); return; } if(S.phase==='day'&&!anyModal()) startNight(); };
 $('btnSkill').onclick=()=>{ initAudio(); useSkill(); };
 $('jobPill').onclick=()=>{ jobOpen=!jobOpen; hudT=0; };
 $('hint').onclick=()=>{ hintHideT=0; $('hint').classList.add('gone'); };
@@ -1363,6 +1407,14 @@ function renderMenu(){
     const b=document.createElement('button'); b.className='btn'; b.textContent='Weltkarte öffnen';
     b.onclick=()=>{ $('menu').hidden=true; openWorld(); };
     body.appendChild(b);
+    if(MD.id==='labor'){ const e=endG(), d=G.diff||'easy', best=e.best[d]||0;
+      body.appendChild(h3('Endlos-Verteidigung'));
+      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Welle um Welle, bis die Mauer fällt – dein Spielstand bleibt dabei immer erhalten. Zwischen den Wellen hast du ${END_PAUSE} s Pause. Pro 10 Wellen Rekord gibt es einmalig <b style="color:var(--gold)">1 ★</b>.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Labor, um die Endlos-Verteidigung freizuschalten.'; body.appendChild(q);
+      if(endUnlocked()){ const rr2=document.createElement('div'); rr2.className='row-end';
+        const sb=document.createElement('button'); sb.className='btn'; sb.textContent=endless?'Läuft …':'Endlos starten'; sb.disabled=!!endless||S.phase!=='day'; sb.onclick=()=>startEndless();
+        const shb=document.createElement('button'); shb.className='btn dark'; shb.textContent='🏆 Rekord teilen'; shb.disabled=best<1; shb.onclick=()=>copyShare(best,null);
+        rr2.append(sb,shb); body.appendChild(rr2);
+        if(S.phase==='night'&&!endless){ const n=document.createElement('p'); n.style.fontSize='12.5px'; n.textContent='Starten geht nur tagsüber.'; body.appendChild(n); } } }
     if(G.maps.labor){ const ns=newStars();
       body.appendChild(h3('Neustart mit Bonus'));
       const q=document.createElement('p'); q.innerHTML=`Alle Maps, Geld, Personal und Waffen werden zurückgesetzt. Dafür bekommst du <b style="color:var(--gold)">${ns} neue Sterne</b> (jetzt: ${G.stars}). Jeder Stern bringt dauerhaft +10 % auf alle Verkäufe. Erfolge bleiben.`; body.appendChild(q);
@@ -1384,8 +1436,8 @@ function newStars(){ return Math.floor(Math.sqrt(totalLife()/50000)); }
 function doPrestige(){
   const ns=newStars(); if(ns<1) return;
   workers.forEach(releaseWorker);
-  const keep={stars:G.stars+ns,prestiges:G.prestiges+1,ach:G.ach,diff:G.diff};
-  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keep.stars,prestiges:keep.prestiges,ach:keep.ach,diff:keep.diff,seenVer:NEWS_VER};
+  const keep={stars:G.stars+ns,prestiges:G.prestiges+1,ach:G.ach,diff:G.diff,endless:G.endless};
+  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keep.stars,prestiges:keep.prestiges,ach:keep.ach,diff:keep.diff,endless:keep.endless,seenVer:NEWS_VER};
   G.maps.farm=freshMap('farm'); S=G.maps.farm; S.flags.intro=1;
   unlockAch('prestige'); setupMap('farm'); buildRuntime(); save(); $('menu').hidden=true; toast('Neuer Anfang mit '+G.stars+' ★ · +'+G.stars*10+' % Einnahmen',3500);
 }
@@ -1416,7 +1468,7 @@ $('iOk').onclick=()=>{initAudio();$('intro').hidden=true;S.flags.intro=1;save();
 
 // ---------- Weltkarte & Reisen ----------
 function mapUnlocked(id){ if(id==='farm'||G.maps[id]) return true; const prev=Object.values(MAPDEFS).find(m=>m.next===id); return !!(prev&&G.maps[prev.id]&&G.maps[prev.id].flags.mapDone); }
-function openWorld(){ initAudio(); renderWorld(); $('world').hidden=false; }
+function openWorld(){ initAudio(); if(endless){ toast('Erst die Endlos-Verteidigung beenden.',2000); return; } renderWorld(); $('world').hidden=false; }
 $('worldClose').onclick=()=>{$('world').hidden=true;};
 function renderWorld(){
   const body=$('worldBody'); body.innerHTML='';
@@ -1427,6 +1479,7 @@ function renderWorld(){
     if(e.soon){ status='Kommt bald'; desc=e.desc; }
     else if(here){ status='Du bist hier'; desc=`Kasse $${fmt(st.money)} · Tag ${st.day} · ${st.workers.length} Arbeiter`; }
     else if(st){ status='Besucht'; desc=`Kasse $${fmt(st.money)} · Tag ${st.day} · ${st.workers.length} Arbeiter`; }
+    if(e.id==='labor'&&endBest()>0) desc+=` · 🏆 Endlos-Rekord: Welle ${endBest()}`;
     else if(unlocked){ status='Freigeschaltet'; desc='Neue Waren, neue Rezepte, neue Zombies.'; }
     else { status='Gesperrt'; desc=`Erfülle zuerst alle Ziele auf ${Object.values(MAPDEFS).find(m=>m.next===e.id).name}.`; }
     card.innerHTML=`<div class="wnum">${md.num}</div><div class="winfo"><div class="wname">${md.name}<small>${status}</small></div><div class="wdesc">${desc}</div></div>`;
@@ -1477,8 +1530,12 @@ function hardGameOver(){
 // ---------- Was ist neu ----------
 const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
 function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-const NEWS_VER='1.4';
+const NEWS_VER='1.5';
 const NEWS_LOG={
+ '1.5':[
+  ['🏆','Neu im Labor: Endlos-Verteidigung! Sobald alle Labor-Ziele erfüllt sind, startest du sie im Menü unter „Ziele“. Welle um Welle, bis die Mauer fällt – dein Spielstand bleibt immer erhalten.'],
+  ['⭐','Pro 10 Wellen Rekord gibt es einmalig einen Stern. Deinen Rekord kannst du mit einem Knopf für Discord teilen.']
+ ],
  '1.4':[
   ['🛡️','Neu: Spezial-Aufrüstungen! Jede Map hat zwei eigene, z. B. Wachhund, Heißes Öl, Sprengladung, Stahlmauer und Laser-Turm. Du findest sie im Menü unter Ausrüstung → „Spezial“.'],
   ['💥','Sprengladung (Mine) und Energieschild (Labor) löst du nachts selbst aus: Der Knopf erscheint oben neben der Tagesanzeige.']
@@ -2006,7 +2063,11 @@ function hud(dt){
     setText($('dayInfo'),(isBossNight(S.day)?'Boss in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true;
     $('btnNight').hidden=S.flags.sold<1; $('btnNight').classList.toggle('pulse',onlyNightsLeft()); setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
   { const k=skillInfo(), b=$('btnSkill'); b.hidden=!k; if(k){ setText(b,k.text); b.disabled=!k.ready; } }
-  if(S.phase==='day'){} else { $('btnNight').hidden=true; setText($('dayLbl'),(isBossNight(S.day)?'Boss ':'Nacht ')+S.day); setText($('dayInfo'),(zombies.length+zSpawnLeft)+' Zombies · Mauer '+Math.max(0,Math.ceil(S.wallHp))+(G.ammo>=1?' · Mun. '+Math.floor(G.ammo):''));
+  if(S.phase==='day'){} else if(endless){ const pz=endless.pause>0; $('btnNight').hidden=!pz; $('btnNight').classList.remove('pulse'); if(pz) setText($('btnNight'),'Nächste Welle ▶');
+    setText($('dayLbl'),endless.wave?(bossNow()?'Bosswelle ':'Welle ')+endless.wave:'Endlos');
+    setText($('dayInfo'),(pz?'Pause '+Math.ceil(endless.pause)+'s':(zombies.length+zSpawnLeft)+' Zombies')+' · Mauer '+Math.max(0,Math.ceil(S.wallHp)));
+    $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
+  else { $('btnNight').hidden=true; setText($('dayLbl'),(isBossNight(S.day)?'Boss ':'Nacht ')+S.day); setText($('dayInfo'),(zombies.length+zSpawnLeft)+' Zombies · Mauer '+Math.max(0,Math.ceil(S.wallHp))+(G.ammo>=1?' · Mun. '+Math.floor(G.ammo):''));
     $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
   const ct=S.contract, jp=$('jobPill');
   if(ct){ jp.hidden=false; const r=Math.max(0,Math.ceil(ct.t));
@@ -2064,7 +2125,7 @@ addEventListener('pagehide',save);
 let lt=performance.now();
 function frame(now){
   const dt=Math.min(0.05,(now-lt)/1000); lt=now;
-  const paused=!$('intro').hidden||!$('news').hidden||!$('diff').hidden||!$('over').hidden||!$('welcome').hidden||!$('world').hidden;
+  const paused=!$('intro').hidden||!$('endres').hidden||!$('news').hidden||!$('diff').hidden||!$('over').hidden||!$('welcome').hidden||!$('world').hidden;
   try{ if(!paused) update(dt); render(now/1000); hud(dt); }catch(err){ console.error(err); }
   requestAnimationFrame(frame);
 }
@@ -2076,6 +2137,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.4c</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.5a</div>
 </body>
 </html>
