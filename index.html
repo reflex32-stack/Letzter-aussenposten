@@ -54,6 +54,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dayrow{display:flex;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden}
 .nightbtn{pointer-events:auto;border:1px solid #6a4a8a;background:#2a2238;color:#d8c8f0;border-radius:6px;padding:3px 8px;font:700 11px var(--body)}
 .nightbtn:active{transform:translateY(1px)}
+.nightbtn.pulse{animation:nbPulse 1.4s ease-in-out infinite;border-color:#b48ae8;color:#fff}
+@keyframes nbPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,138,232,.7)}50%{box-shadow:0 0 0 6px rgba(180,138,232,0)}}
 #dayLbl{font-family:var(--display);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--sand)}
 #dayInfo{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
 .wallbar{width:130px;height:6px;border-radius:3px;background:#3a2c22;overflow:hidden}
@@ -277,7 +279,7 @@ const MAPDEFS={
       {text:'Alle 7 Stationsarten bauen', cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:7},
       {text:'3 Arbeiter einstellen',     cur:()=>S.workers.length, max:3},
       {text:'Insgesamt $20.000 verdienen',cur:()=>S.lifetime, max:20000, money:true},
-      {text:'5 Nächte überstehen',        cur:()=>S.nights, max:5},
+      {text:'5 Nächte überstehen',        cur:()=>S.nights, max:5, nights:true},
     ],
     intro:`<p><b style="color:var(--bone)">Map 1 · Bauernhof.</b> Stell dich an eine Station, um Waren herzustellen. Bring sie ins Verkaufslager an der Theke. Sobald Ware im Lager liegt, kommen Überlebende und kaufen ein. Je voller das Lager, desto mehr Kunden.</p>
       <p>Manche Waren brauchen mehrere Schritte: Weizen → Mühle → Mehl → Ofen → Brot. Arbeiter füllen das Lager von selbst. Nachts greifen Zombies die Mauer an.</p>
@@ -319,7 +321,7 @@ const MAPDEFS={
       {text:'Alle 10 Stationsarten bauen', cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:10},
       {text:'4 Arbeiter einstellen',       cur:()=>S.workers.length, max:4},
       {text:'Insgesamt $80.000 verdienen', cur:()=>S.lifetime, max:80000, money:true},
-      {text:'8 Nächte überstehen',          cur:()=>S.nights, max:8},
+      {text:'8 Nächte überstehen',          cur:()=>S.nights, max:8, nights:true},
     ],
     intro:`<p><b style="color:var(--bone)">Map 2 · Dorfküche.</b> Hier wird gekocht. Rezepte brauchen zwei Zutaten: Wasser + Gemüse ergibt Suppe, Mehl + Ei ergibt Kuchen.</p>
       <p>Mehl, Eier, Brot und Käse kommen per Lieferung vom Bauernhof. Je weiter du dort die passende Station ausbaust, desto schneller kommen sie.</p>
@@ -358,14 +360,14 @@ MAPDEFS.mine={
       {text:'Alle 8 Stationsarten bauen',  cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:8},
       {text:'5 Arbeiter einstellen',        cur:()=>S.workers.length, max:5},
       {text:'Insgesamt $250.000 verdienen', cur:()=>S.lifetime, max:250000, money:true},
-      {text:'10 Nächte überstehen',          cur:()=>S.nights, max:10},
+      {text:'10 Nächte überstehen',          cur:()=>S.nights, max:10, nights:true},
     ],
     intro:`<p><b style="color:var(--bone)">Map 3 · Mine & Schmiede.</b> Erz + Kohle ergibt im Schmelzofen Eisen. Aus Eisen werden Nägel, mit Holz dazu Werkzeug.</p>
       <p><b style="color:var(--bone)">Munition:</b> Sobald die Munitionspresse steht, wird Munition automatisch auf alle Maps geliefert. Damit schießen Türme und Wachen nachts doppelt so stark. Je höher die Presse ausgebaut ist, desto schneller kommt Nachschub.</p>
       <p>In der Schmiede gibt es neue Waffen: Schrotflinte, Armbrust und Landminen. Vorsicht vor Brocken: große, zähe Zombies, die die Mauer schnell beschädigen.</p>`,
 };
 MAPDEFS.werkstatt={
-    id:'werkstatt', name:'Werkstatt', num:4, next:'labor', tables:null, zRunner:0.15, zBrute:0.15, zSpit:0.22, startMoney:500, staff:'Kassierer',
+    id:'werkstatt', name:'Werkstatt', num:4, costMul:1.5, next:'labor', tables:null, zRunner:0.15, zBrute:0.15, zSpit:0.22, startMoney:500, staff:'Kassierer',
     staffDesc:'Sammelt das Geld an den Kassen automatisch ein.',
     theme:{work:'#65635c',workDot:['40,40,36','170,165,150'],path:'rgba(220,180,50,.22)',floor:'#5a5046'},
     sty:{
@@ -386,21 +388,23 @@ MAPDEFS.werkstatt={
       {id:'zahnrad2',type:'zahnrad',c:3,r:1,cost:3500},    {id:'draht2',type:'draht',c:4,r:1,cost:6000},
       {id:'imp_werkzeug1',type:'imp_werkzeug',c:1,r:0,cost:6000},{id:'moped1',type:'moped',c:2,r:0,cost:15000},
       {id:'motorbau2',type:'motorbau',c:3,r:0,cost:12000}, {id:'moped2',type:'moped',c:4,r:0,cost:30000},
+      {id:'imp_werkzeug2',type:'imp_werkzeug',c:0,r:1,cost:22000},{id:'motorbau3',type:'motorbau',c:0,r:0,cost:45000},
     ],
     sell:['kupfer','zahnrad','draht','motor','moped'],
     crate:{kupfer:330,draht:265,zahnrad:670,motor:735,moped:800},
     goals:[
       {text:'Alle 7 Stationsarten bauen',   cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:7},
       {text:'6 Arbeiter einstellen',         cur:()=>S.workers.length, max:6},
+      {text:'Alle Stationsarten auf Stufe 8',cur:()=>ORDER.filter(t=>typeBuilt(t)&&(S.lv[t]||1)>=8).length, max:7},
       {text:'Insgesamt $1.000.000 verdienen',cur:()=>S.lifetime, max:1000000, money:true},
-      {text:'12 Nächte überstehen',           cur:()=>S.nights, max:12},
+      {text:'8 Nächte überstehen',            cur:()=>S.nights, max:8, nights:true},
     ],
     intro:`<p><b style="color:var(--bone)">Map 4 · Werkstatt.</b> Aus Eisen werden Zahnräder, aus Kupfer Draht. Zahnrad + Draht ergibt einen Motor, Motor + Werkzeug ein Moped.</p>
       <p>Eisen und Werkzeug kommen aus der Mine. Baust du dort Schmelzofen und Werkbank aus, geht es hier schneller.</p>
       <p>Nachts kommen <b style="color:var(--bone)">Spucker</b>: Sie bleiben auf Abstand und legen deine Wachtürme lahm. Scheinwerfer helfen.</p>`,
 };
 MAPDEFS.labor={
-    id:'labor', name:'Robotik-Labor', num:5, next:null, tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.15, horde:1.3, leader:true, startMoney:1000, staff:'Kassierer',
+    id:'labor', name:'Robotik-Labor', num:5, costMul:2, next:null, tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.15, horde:1.3, leader:true, startMoney:1000, staff:'Kassierer',
     staffDesc:'Sammelt das Geld an den Kassen automatisch ein.',
     theme:{work:'#58626c',workDot:['30,36,44','170,190,205'],path:'rgba(120,200,230,.16)',floor:'#4a4f58'},
     sty:{
@@ -421,20 +425,25 @@ MAPDEFS.labor={
       {id:'imp_kupfer2',type:'imp_kupfer',c:3,r:1,cost:6000},{id:'schaltkreis2',type:'schaltkreis',c:4,r:1,cost:15000},
       {id:'imp_motor1',type:'imp_motor',c:1,r:0,cost:15000},{id:'roboter1',type:'roboter',c:2,r:0,cost:40000},
       {id:'batterie2',type:'batterie',c:3,r:0,cost:25000}, {id:'roboter2',type:'roboter',c:4,r:0,cost:80000},
+      {id:'imp_motor2',type:'imp_motor',c:0,r:1,cost:50000},{id:'schaltkreis3',type:'schaltkreis',c:0,r:0,cost:120000},
     ],
     sell:['sand','silizium','batterie','schaltkreis','roboter'],
     crate:{sand:330,silizium:265,batterie:670,schaltkreis:735,roboter:800},
     goals:[
       {text:'Alle 7 Stationsarten bauen',   cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:7},
       {text:'6 Arbeiter einstellen',         cur:()=>S.workers.filter(w=>!w.robot).length, max:6},
+      {text:'Alle Stationsarten auf Stufe 10',cur:()=>ORDER.filter(t=>typeBuilt(t)&&(S.lv[t]||1)>=10).length, max:7},
       {text:'Insgesamt $5.000.000 verdienen',cur:()=>S.lifetime, max:5000000, money:true},
-      {text:'15 Nächte überstehen',           cur:()=>S.nights, max:15},
+      {text:'10 Nächte überstehen',           cur:()=>S.nights, max:10, nights:true},
     ],
     intro:`<p><b style="color:var(--bone)">Map 5 · Robotik-Labor.</b> Aus Sand wird Silizium, mit Kupfer ein Schaltkreis. Schaltkreis + Motor ergibt einen Roboter.</p>
       <p>Kupfer und Motoren kommen aus der Werkstatt. <b style="color:var(--bone)">Roboter</b> kannst du verkaufen oder im Menü unter „Team“ als Helfer entnehmen. Helfer-Roboter setzt du auf jeder Map ein: Sie arbeiten ohne Pause und schießen nachts mit Lasern.</p>
       <p>Hier kommen Horden. In Bossnächten führt ein <b style="color:var(--bone)">Anführer</b> sie an: Er ruft Verstärkung und heilt die anderen.</p>
       <p>Wenn du alles erreicht hast, kannst du mit <b style="color:var(--bone)">Sternen</b> neu beginnen – jeder Stern bringt dauerhaft +10 % Einnahmen.</p>`,
 };
+// späte Maps: Bauen und Ausbauen teurer, damit der Ausbau länger trägt
+for(const md of Object.values(MAPDEFS)){ const m=md.costMul||1; if(m===1) continue;
+  md.inst.forEach(i=>{ i.cost=Math.round(i.cost*m/50)*50; }); for(const k in md.sty) md.sty[k].up=Math.round(md.sty[k].up*m); }
 const MAP_LIST=[
   {id:'farm'},{id:'kueche'},
   {id:'mine'},
@@ -609,6 +618,7 @@ function builtCount(){ return INST.filter(i=>S.inst[i.id].unlocked).length; }
 function spawnInterval(){ const a=availTotal(); return Math.max(1.1, 7.5/(1+0.1*a.n+0.35*(a.d-1)+S.mapTime/1200)); }
 function groupChance(){ return Math.min(0.45,0.06+0.035*builtCount()); }
 function goalsDone(){ return GOALS.every(g=>g.cur()>=g.max); }
+function onlyNightsLeft(){ return GOALS.some(g=>g.nights&&g.cur()<g.max)&&GOALS.every(g=>g.nights||g.cur()>=g.max); }
 
 function fmt(n){
   n=Math.floor(n);
@@ -1414,8 +1424,12 @@ function hardGameOver(){
 // ---------- Was ist neu ----------
 const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
 function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-const NEWS_VER='1.2.2';
+const NEWS_VER='1.3';
 const NEWS_LOG={
+ '1.3':[
+  ['🏭','Werkstatt und Labor: Bauen und Ausbauen kostet mehr, dafür gibt es je zwei neue Stationen und ein neues Ziel „Alle Stationsarten auf Stufe 8“ bzw. „Stufe 10“.'],
+  ['🌙','Weniger Warten: Werkstatt braucht nur noch 8 statt 12 Nächte, das Labor 10 statt 15. Fehlen nur noch Nächte, leuchtet „Nacht starten“ auf.']
+ ],
  '1.2.2':[
   ['💬','Neu: Unser Discord-Server! Dort gibt es Updates, Hilfe und ein Forum für dein Feedback. Du findest ihn jederzeit im Menü unter Ausrüstung → „Discord“.']
  ],
@@ -1465,6 +1479,7 @@ function hintTarget(){
   if(MD.id==='mine'&&!typeBuilt('munpresse')&&typeBuilt('pulvermuehle')) return {text:'Bau die Munitionspresse: Dann wird Munition automatisch auf alle Maps geliefert.',x:INSTBY.munpresse1.x,y:INSTBY.munpresse1.y};
   if(MD.id==='kueche'&&typeBuilt('brunnen')&&!typeBuilt('topf')) return {text:'Wasser + Gemüse ergibt Suppe. Bau den Suppentopf.',x:INSTBY.topf1.x,y:INSTBY.topf1.y};
   if(MD.tables&&SEATS.every(s=>!seatFree(s))&&customers.some(c=>c.noSeat)) return {text:'Alle Tische sind besetzt oder schmutzig. Abräumen oder neue Tische kaufen!'};
+  if(onlyNightsLeft()) return {text:'Nur noch Nächte fehlen! Tippe oben auf „Nacht starten“, dann musst du nicht warten.'};
   if(!MD.next&&goalsDone()&&newStars()>0) return {text:'Alle Ziele geschafft! Unter Menü → Ziele kannst du mit Sternen neu beginnen.'};
   if(MD.next&&goalsDone()&&!G.maps[MD.next]) return {text:`Alle Ziele erfüllt! Öffne Menü → Ziele → Weltkarte und reise zur ${MAPDEFS[MD.next].name}.`};
   return null;
@@ -1914,7 +1929,7 @@ function hud(dt){
   setText($('pLvl'),'Lv '+G.player.lvl+(G.stars?' ★'+G.stars:''));
   if(S.phase==='day'){ const r=Math.max(0,Math.ceil(DAY_LEN-S.phaseT)); setText($('dayLbl'),'Tag '+S.day);
     setText($('dayInfo'),(isBossNight(S.day)?'Boss in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true;
-    $('btnNight').hidden=S.flags.sold<1; setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
+    $('btnNight').hidden=S.flags.sold<1; $('btnNight').classList.toggle('pulse',onlyNightsLeft()); setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
   else { $('btnNight').hidden=true; setText($('dayLbl'),(isBossNight(S.day)?'Boss ':'Nacht ')+S.day); setText($('dayInfo'),(zombies.length+zSpawnLeft)+' Zombies · Mauer '+Math.max(0,Math.ceil(S.wallHp))+(G.ammo>=1?' · Mun. '+Math.floor(G.ammo):''));
     $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
   const ct=S.contract, jp=$('jobPill');
@@ -1990,7 +2005,7 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
   <span>Neue Version verfügbar</span><button id="updBtn" style="border:0;border-radius:8px;padding:8px 12px;background:#241c0e;color:#f2c14e;font:700 14px 'Chakra Petch',system-ui,sans-serif">Jetzt aktualisieren</button>
 </div>
 <script>
-window.APP_VERSION='1.2.2';
+window.APP_VERSION='1.3.0';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   let waiting=null, reloading=false, regRef=null;
   const bar=document.getElementById('updBar');
