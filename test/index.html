@@ -443,7 +443,7 @@ MAPDEFS.labor={
     intro:`<p><b style="color:var(--bone)">Map 5 · Robotik-Labor.</b> Aus Sand wird Silizium, mit Kupfer ein Schaltkreis. Schaltkreis + Motor ergibt einen Roboter.</p>
       <p>Kupfer und Motoren kommen aus der Werkstatt. <b style="color:var(--bone)">Roboter</b> kannst du verkaufen oder im Menü unter „Team“ als Helfer entnehmen. Helfer-Roboter setzt du auf jeder Map ein: Sie arbeiten ohne Pause und schießen nachts mit Lasern.</p>
       <p>Hier kommen Horden. In Bossnächten führt ein <b style="color:var(--bone)">Anführer</b> sie an: Er ruft Verstärkung und heilt die anderen.</p>
-      <p>Wenn du alles erreicht hast, kannst du mit <b style="color:var(--bone)">Sternen</b> neu beginnen – jeder Stern bringt dauerhaft +10 % Einnahmen.</p>`,
+      <p>Wenn du alles erreicht hast, startest du das <b style="color:var(--bone)">Finale</b>: Endlos-Wellen bis die Mauer fällt. Danach beginnt eine neue Welt mit <b style="color:var(--bone)">Sternen</b> – jeder bringt dauerhaft +10 % Einnahmen.</p>`,
 };
 // späte Maps: Bauen und Ausbauen teurer, damit der Ausbau länger trägt
 for(const md of Object.values(MAPDEFS)){ const m=md.costMul||1; if(m===1) continue;
@@ -547,7 +547,7 @@ let G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:fals
 function load(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
-    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.seenVer=o.seenVer||'1.0'; G.diff=DIFFS[o.diff]?o.diff:null; G.endless=o.endless||null; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
+    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.seenVer=o.seenVer||'1.0'; G.diff=DIFFS[o.diff]?o.diff:null; G.endless=o.endless||null; G.finale=o.finale||null; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
       for(const id in (o.maps||{})) if(MAPDEFS[id]) G.maps[id]=fixMap(o.maps[id],id); }
     else { const old=localStorage.getItem(OLD_KEY);
       if(old){ const o=JSON.parse(old); G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.maps.farm=fixMap(o,'farm'); } }
@@ -557,7 +557,7 @@ function load(){
     for(const id in G.maps){ const u=G.maps[id].up||{}; for(const k of GLOBAL_UPG) G.gup[k]=Math.max(G.gup[k],u[k]||0); } }
   S=G.maps[G.cur];
 }
-function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),seenVer:G.seenVer||NEWS_VER,diff:G.diff,endless:G.endless||null,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
+function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),seenVer:G.seenVer||NEWS_VER,diff:G.diff,endless:G.endless||null,finale:G.finale||null,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
   for(const id in G.maps){ const m=Object.assign({},G.maps[id]); delete m.player; o.maps[id]=m; } return o; }
 function save(){ S.last=Date.now(); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saveObj())); }catch(e){} }
 // ---------- Spielstand-Code (zwischen Geräten übertragen) ----------
@@ -663,7 +663,7 @@ let customers=[], zombies=[], tracers=[], parts=[], floats=[];
 let mines=[], globs=[];
 let spawnT=1, zSpawnLeft=0, zSpawnT=0, repairing=false, mechWork=false;
 let wallAttackers=0;
-let endless=null; // läuft gerade die Endlos-Verteidigung?
+let endless=null, finaleArm=false; // läuft gerade die Endlos-Verteidigung?
 const ND=()=>endless?endless.eday:S.day, bossNow=()=>endless?(endless.wave>0&&endless.wave%5===0):isBossNight(S.day);
 let specT={oil:0,cata:0,gun:0,laser:0}, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
 const MECH_POS=[{x:445,y:856},{x:555,y:856}];
@@ -1175,8 +1175,8 @@ const endBest=()=>Math.max(0,...Object.values(endG().best));
 const endUnlocked=()=>MD.id==='labor'&&!!S.flags.mapDone;
 const END_PAUSE=20;
 function startEndless(){ if(!endUnlocked()||S.phase!=='day') return;
-  $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:4,eday:S.day};
-  toast('Endlos-Verteidigung! Halte so viele Wellen wie möglich.',3200); }
+  $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:30,eday:S.day}; G.finale={done:0}; save();
+  toast('Das Finale beginnt! 30 s Vorbereitung – gib dein Geld für Verteidigung aus.',4000); }
 function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*1.5);
   zSpawnLeft=zCount(ND())+(bossNow()?1:0); zSpawnT=1; mines=[]; for(let i=0;i<2*S.up.mine;i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
   blastUsed=false; specT={oil:1,cata:1,gun:0,laser:0};
@@ -1184,19 +1184,23 @@ function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*
 function waveCleared(){ const w=endless.wave, e=endG(), d=G.diff||'easy';
   const bonus=Math.round(400*w*MD.num); S.money+=bonus; S.lifetime+=bonus;
   if(w>(e.best[d]||0)) e.best[d]=w;
-  const st=Math.floor(endBest()/10); let msg='Welle '+w+' geschafft! +$'+fmt(bonus);
-  if(st>e.stars){ const n=st-e.stars; e.stars=st; G.stars+=n; msg+=' · +'+n+' ★ für deinen Rekord!'; beep(880,.4,'triangle',.06,440); }
-  toast(msg,3000); endless.pause=END_PAUSE; save(); }
-function endEndless(){ const done=endless.wave-1, e=endG(), d=G.diff||'easy';
+  G.finale={done:w};
+  let msg='Welle '+w+' geschafft! +$'+fmt(bonus)+' · Sterne bei Weltende: '+(runStars()+Math.floor(w/10))+' ★';
+  if(w%10===0){ msg='Welle '+w+'! +1 ★ für dieses Finale · gesamt '+(runStars()+Math.floor(w/10))+' ★'; beep(880,.4,'triangle',.06,440); }
+  toast(msg,3200); endless.pause=END_PAUSE; save(); }
+// Weltende: Sterne gutschreiben, neue Welt starten
+function finishWorld(done){ const e=endG(), d=G.diff||'easy';
   if(done>(e.best[d]||0)) e.best[d]=done;
-  endless=null; zombies=[]; mines=[]; globs=[]; pots=[]; for(const k in TR) TR[k].stun=0; S.phase='day'; S.phaseT=0; S.wallHp=wallMax(); save();
-  showEndResult(done); }
+  const rs=runStars(), ws=Math.floor(done/10), gain=rs+ws;
+  endless=null; G.finale=null; zombies=[]; mines=[]; globs=[]; pots=[];
+  doPrestige(gain); showEndResult(done,rs,ws); }
+function endEndless(){ finishWorld(endless.wave-1); }
 function shareText(n){ return `🏆 Letzter Außenposten – Endlos-Verteidigung: Welle ${n} auf ${DF().name} geschafft! Schaffst du mehr? https://reflex32-stack.github.io/Letzter-aussenposten/`; }
 function copyShare(n,ta){ const t=shareText(n); const done=()=>toast('Text kopiert – jetzt in Discord einfügen!',2400);
   try{ navigator.clipboard.writeText(t).then(done,()=>{ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } toast('Text markiert – jetzt kopieren',2400); }); }catch(e){ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } } }
-function showEndResult(n){ const d=G.diff||'easy', best=endG().best[d]||0;
-  $('eTitle').textContent='Die Mauer ist gefallen'; $('eText').textContent=`Du hast ${n} ${n===1?'Welle':'Wellen'} überstanden. Dein Rekord auf ${DF().name}: ${best}. Dein Spielstand bleibt erhalten.`;
-  const ta=$('eShareTxt'); ta.hidden=true; $('eShare').onclick=()=>copyShare(n,ta); $('eOk').onclick=()=>{ $('endres').hidden=true; };
+function showEndResult(n,rs,ws){ const d=G.diff||'easy', best=endG().best[d]||0;
+  $('eTitle').textContent='Das Ende dieser Welt'; $('eText').innerHTML=`Du hast im Finale <b style="color:var(--bone)">${n} ${n===1?'Welle':'Wellen'}</b> überstanden (Rekord auf ${DF().name}: ${best}).<br><br>Sterne: <b style="color:var(--gold)">+${rs} ★</b> Durchlauf (${DF().name})${ws?` · <b style="color:var(--gold)">+${ws} ★</b> Wellen`:''}<br>Du startest jetzt eine neue Welt mit <b style="color:var(--gold)">${G.stars} ★</b> = +${G.stars*10} % auf alle Verkäufe.`;
+  const ta=$('eShareTxt'); ta.hidden=true; $('eShare').onclick=()=>copyShare(n,ta); $('eOk').textContent='Neue Welt starten'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; };
   $('endres').hidden=false; beep(120,.6,'sawtooth',.05,-60); }
 function updateNight(dt){
   zSpawnT-=dt;
@@ -1316,7 +1320,7 @@ $('btnSkill').onclick=()=>{ initAudio(); useSkill(); };
 $('jobPill').onclick=()=>{ jobOpen=!jobOpen; hudT=0; };
 $('hint').onclick=()=>{ hintHideT=0; $('hint').classList.add('gone'); };
 $('menuClose').onclick=()=>{$('menu').hidden=true;};
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;resetArm=false;prestigeArm=false;renderMenu();});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;resetArm=false;prestigeArm=false;finaleArm=false;renderMenu();});
 function row(name,lvlTxt,desc,btnTxt,disabled,onclick,bar){
   const r=document.createElement('div'); r.className='urow';
   r.innerHTML=`<div class="n">${name}${lvlTxt?`<small>${lvlTxt}</small>`:''}</div><div class="d">${desc}${bar!=null?`<div class="minibar"><i style="width:${Math.round(bar*100)}%"></i></div>`:''}</div>`;
@@ -1411,19 +1415,14 @@ function renderMenu(){
     b.onclick=()=>{ $('menu').hidden=true; openWorld(); };
     body.appendChild(b);
     if(MD.id==='labor'){ const e=endG(), d=G.diff||'easy', best=e.best[d]||0;
-      body.appendChild(h3('Endlos-Verteidigung'));
-      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Welle um Welle, bis die Mauer fällt – dein Spielstand bleibt dabei immer erhalten. Zwischen den Wellen hast du ${END_PAUSE} s Pause. Pro 10 Wellen Rekord gibt es einmalig <b style="color:var(--gold)">1 ★</b>.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Labor, um die Endlos-Verteidigung freizuschalten.'; body.appendChild(q);
+      body.appendChild(h3('Finale · Endlos-Verteidigung'));
+      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Das Ende dieser Welt: Welle um Welle, bis die Mauer fällt. Danach beginnt eine <b style="color:var(--bone)">neue Welt</b> mit deinen Sternen.<br>Sterne: <b style="color:var(--gold)">${runStars()} ★</b> für den Durchlauf (${DF().name}) <b style="color:var(--gold)">+ 1 ★ je 10 Wellen</b>. Zwischen den Wellen ${END_PAUSE} s Pause, vor Welle 1 sogar 30 s.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Labor, um das Finale freizuschalten. Erst danach gibt es neue Sterne.'; body.appendChild(q);
       if(endUnlocked()){ const rr2=document.createElement('div'); rr2.className='row-end';
-        const sb=document.createElement('button'); sb.className='btn'; sb.textContent=endless?'Läuft …':'Endlos starten'; sb.disabled=!!endless||S.phase!=='day'; sb.onclick=()=>startEndless();
+        const sb=document.createElement('button'); sb.className='btn'; sb.textContent=endless?'Läuft …':(finaleArm?'Wirklich? Diese Welt endet danach!':'Finale starten'); sb.disabled=!!endless||S.phase!=='day'; sb.onclick=()=>{ if(!finaleArm){ finaleArm=true; renderMenu(); return; } finaleArm=false; startEndless(); };
         const shb=document.createElement('button'); shb.className='btn dark'; shb.textContent='🏆 Rekord teilen'; shb.disabled=best<1; shb.onclick=()=>copyShare(best,null);
         rr2.append(sb,shb); body.appendChild(rr2);
         if(S.phase==='night'&&!endless){ const n=document.createElement('p'); n.style.fontSize='12.5px'; n.textContent='Starten geht nur tagsüber.'; body.appendChild(n); } } }
-    if(G.maps.labor){ const ns=newStars();
-      body.appendChild(h3('Neustart mit Bonus'));
-      const q=document.createElement('p'); q.innerHTML=`Alle Maps, Geld, Personal und Waffen werden zurückgesetzt. Dafür bekommst du <b style="color:var(--gold)">${ns} neue Sterne</b> (jetzt: ${G.stars}). Jeder Stern bringt dauerhaft +10 % auf alle Verkäufe. Erfolge bleiben.`; body.appendChild(q);
-      const rb=document.createElement('button'); rb.className='btn dark'; rb.textContent=prestigeArm?'Wirklich neu beginnen?':`Neu beginnen · +${ns} ★`; rb.disabled=ns<1;
-      rb.onclick=()=>{ if(!prestigeArm){prestigeArm=true;renderMenu();return;} doPrestige(); };
-      body.appendChild(rb); }
+    if(MD.id!=='labor'&&G.stars){ const q=document.createElement('p'); q.style.fontSize='12.5px'; q.textContent=`Deine Sterne: ${G.stars} ★ = +${G.stars*10} % auf alle Verkäufe. Neue Sterne gibt es im Finale im Robotik-Labor.`; body.appendChild(q); }
   }
   if(tab==='ach'){
     const n=Object.keys(G.ach).length;
@@ -1436,13 +1435,14 @@ function renderMenu(){
 // ---------- Sterne & Erfolge ----------
 function totalLife(){ let l=0; for(const id in G.maps) l+=G.maps[id].lifetime; return l; }
 function newStars(){ return Math.floor(Math.sqrt(totalLife()/50000)); }
-function doPrestige(){
-  const ns=newStars(); if(ns<1) return;
+const RUN_STARS={easy:1,normal:2,hard:3};
+const runStars=()=>RUN_STARS[G.diff||'easy']||1;
+function doPrestige(ns){
   workers.forEach(releaseWorker);
   const keep={stars:G.stars+ns,prestiges:G.prestiges+1,ach:G.ach,diff:G.diff,endless:G.endless};
   G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keep.stars,prestiges:keep.prestiges,ach:keep.ach,diff:keep.diff,endless:keep.endless,seenVer:NEWS_VER};
   G.maps.farm=freshMap('farm'); S=G.maps.farm; S.flags.intro=1;
-  unlockAch('prestige'); setupMap('farm'); buildRuntime(); save(); $('menu').hidden=true; toast('Neuer Anfang mit '+G.stars+' ★ · +'+G.stars*10+' % Einnahmen',3500);
+  unlockAch('prestige'); setupMap('farm'); buildRuntime(); save(); $('menu').hidden=true;
 }
 const ACH=[
   {id:'sale',    name:'Erster Verkauf',     desc:'Verkaufe deine erste Ware.',                     test:()=>S.flags.sold>=1},
@@ -1522,23 +1522,27 @@ function showDiff(after){
 function hardGameOver(){
   const days=Object.values(G.maps).reduce((a,m)=>a+m.day-1,0), nights=Object.values(G.maps).reduce((a,m)=>a+m.nights,0), maps=Object.keys(G.maps).length;
   workers.forEach(releaseWorker);
-  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:0,prestiges:0,ach:{},diff:'hard',seenVer:NEWS_VER};
+  const keepStars=G.stars, keepEnd=G.endless, keepPre=G.prestiges;
+  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keepStars,prestiges:keepPre,ach:{},diff:'hard',endless:keepEnd,seenVer:NEWS_VER};
   G.maps.farm=freshMap('farm'); S=G.maps.farm; S.flags.intro=1;
   setupMap('farm'); buildRuntime(); save();
   $('menu').hidden=true; $('world').hidden=true;
-  $('oText').textContent=`Die Zombies haben die Mauer durchbrochen. Auf „Schwer“ ist damit alles verloren. Du hast ${days} Tage und ${nights} Nächte auf ${maps} ${maps===1?'Map':'Maps'} durchgehalten.`;
+  $('oText').textContent=`Die Zombies haben die Mauer durchbrochen. Auf „Schwer“ ist deine Welt damit verloren – deine ${G.stars} ★ und dein Endlos-Rekord bleiben dir aber. Du hast ${days} Tage und ${nights} Nächte auf ${maps} ${maps===1?'Map':'Maps'} durchgehalten.`;
   $('over').hidden=false; beep(90,1,'sawtooth',.07,-40);
   $('oOk').onclick=()=>{ initAudio(); $('over').hidden=true; showDiff(null); };
 }
 // ---------- Was ist neu ----------
 const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
 function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-const NEWS_VER='1.5';
+const NEWS_VER='1.6';
 const NEWS_LOG={
+ '1.6':[
+  ['🏆','Neu: Das Finale! Sind alle Labor-Ziele erfüllt, startest du im Menü unter „Ziele“ die Endlos-Verteidigung. Welle um Welle, bis die Mauer fällt – dann endet diese Welt und eine neue beginnt.'],
+  ['⭐','Sterne gibt es jetzt pro Durchlauf: 1/2/3 ★ je nach Schwierigkeit, plus 1 ★ je 10 Wellen im Finale. Auf „Schwer“ bleiben Sterne und Rekord auch erhalten, wenn die Mauer fällt.']
+ ],
  '1.5':[
   ['🔨','Reparieren ist schwächer: weniger Zuwachs pro Mauer-Stufe, Mechaniker 20 % statt 35 %, und unter Druck (viele Zombies an der Mauer) geht es langsamer. Die Verteidigung davor zählt jetzt mehr.'],
-  ['🏆','Neu im Labor: Endlos-Verteidigung! Sobald alle Labor-Ziele erfüllt sind, startest du sie im Menü unter „Ziele“. Welle um Welle, bis die Mauer fällt – dein Spielstand bleibt immer erhalten.'],
-  ['⭐','Pro 10 Wellen Rekord gibt es einmalig einen Stern. Deinen Rekord kannst du mit einem Knopf für Discord teilen.']
+  ['🏆','Neu im Labor: Endlos-Verteidigung mit Rekord und Teilen-Knopf für Discord.']
  ],
  '1.4':[
   ['🛡️','Neu: Spezial-Aufrüstungen! Jede Map hat zwei eigene, z. B. Wachhund, Heißes Öl, Sprengladung, Stahlmauer und Laser-Turm. Du findest sie im Menü unter Ausrüstung → „Spezial“.'],
@@ -1601,7 +1605,7 @@ function hintTarget(){
   if(MD.id==='kueche'&&typeBuilt('brunnen')&&!typeBuilt('topf')) return {text:'Wasser + Gemüse ergibt Suppe. Bau den Suppentopf.',x:INSTBY.topf1.x,y:INSTBY.topf1.y};
   if(MD.tables&&SEATS.every(s=>!seatFree(s))&&customers.some(c=>c.noSeat)) return {text:'Alle Tische sind besetzt oder schmutzig. Abräumen oder neue Tische kaufen!'};
   if(onlyNightsLeft()) return {text:'Nur noch Nächte fehlen! Tippe oben auf „Nacht starten“, dann musst du nicht warten.'};
-  if(!MD.next&&goalsDone()&&newStars()>0) return {text:'Alle Ziele geschafft! Unter Menü → Ziele kannst du mit Sternen neu beginnen.'};
+  if(!MD.next&&goalsDone()&&S.phase==='day') return {text:'Alle Ziele geschafft! Unter Menü → Ziele startest du das Finale – danach geht es mit neuen Sternen in eine neue Welt.'};
   if(MD.next&&goalsDone()&&!G.maps[MD.next]) return {text:`Alle Ziele erfüllt! Öffne Menü → Ziele → Weltkarte und reise zur ${MAPDEFS[MD.next].name}.`};
   return null;
 }
@@ -2122,6 +2126,7 @@ for(const id in G.maps){ const m=G.maps[id]; if(m.incRate==null) m.incRate=0; }
   const fin=()=>offline(el0), pick=()=>{ if(!G.diff) showDiff(fin); else fin(); };
   if(!S.flags.intro){ G.seenVer=NEWS_VER; if(!G.diff) showDiff(showIntro); else showIntro(); }
   else if(G.seenVer&&verLt(G.seenVer,NEWS_VER)){ const from=G.seenVer; showNews(pick,from); } else pick(); }
+if(G.finale&&G.maps.labor){ const d0=G.finale.done||0; setTimeout(()=>{ $('news').hidden=true; $('welcome').hidden=true; if(G.cur!=='labor'){ G.cur='labor'; } finishWorld(d0); toast('Das Finale wurde unterbrochen und ist ausgewertet.',3500); },600); }
 setInterval(save,5000);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 addEventListener('pagehide',save);
@@ -2141,6 +2146,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.5b</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.6a</div>
 </body>
 </html>
