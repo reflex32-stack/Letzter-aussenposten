@@ -34,7 +34,10 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .pill{pointer-events:auto;background:rgba(23,25,15,.86);border:1.5px solid var(--line);border-radius:10px;
   padding:6px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
 .money{font-family:var(--display);font-size:20px;color:var(--gold);letter-spacing:.5px;font-variant-numeric:tabular-nums;min-width:0;padding:5px 10px;gap:6px}
-.money .lv{font-family:var(--body);font-size:11px;font-weight:700;color:var(--ok);letter-spacing:0;margin-left:2px;white-space:nowrap}
+.money .lv{font-family:var(--body);font-size:10.5px;font-weight:700;color:var(--ok);letter-spacing:0;margin-left:2px;white-space:nowrap;display:flex;flex-direction:column;line-height:1.1;flex:none}
+.money .lv i{font-style:normal;color:var(--gold)}
+.pill.money{flex:0 0 auto}
+.money #money{white-space:nowrap}
 .coin{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe69a,#e0a92a 60%,#9c6d10);box-shadow:0 0 0 2px #6e4c0b inset}
 .lvl{padding:4px 10px;gap:8px;font-size:12px;font-weight:700;color:var(--ok)}
 .xpbar{width:70px;height:5px;border-radius:3px;background:#2c3a1c;overflow:hidden}
@@ -134,7 +137,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 <div id="game"><canvas id="cv" aria-label="Spielfeld"></canvas></div>
 <div id="hud">
   <div class="top">
-    <div class="pill money" aria-label="Geld"><span class="coin"></span><span id="money">0</span><span class="lv" id="pLvl">Lv 1</span></div>
+    <div class="pill money" aria-label="Geld"><span class="coin"></span><span id="money">0</span><span class="lv"><b id="pLvl">Lv 1</b><i id="pStars" hidden></i></span></div>
     <div class="pill day"><div class="dayrow"><span id="dayLbl">Tag 1</span><span id="dayInfo"></span></div><button class="nightbtn" id="btnNight">Nacht starten</button><button class="nightbtn skill" id="btnSkill" hidden></button><div class="wallbar" id="wallBar" hidden><i id="wallFill"></i></div></div>
     <div class="topbtns"><button class="btn" id="btnMenu">Menü<span class="dot" id="menuDot" hidden></span></button></div>
   </div>
@@ -2066,7 +2069,7 @@ let hudT=0, menuRefreshT=0, jobOpen=false, hintLast=null, hintHideT=0, hudBottom
 function hud(dt){
   $('money').textContent=fmt(S.money);
   hudT-=dt; if(hudT>0) return; hudT=0.12;
-  setText($('pLvl'),'Lv '+G.player.lvl+(G.stars?' ★'+G.stars:''));
+  setText($('pLvl'),'Lv '+G.player.lvl); $('pStars').hidden=!G.stars; if(G.stars) setText($('pStars'),'★ '+G.stars);
   if(S.phase==='day'){ const r=Math.max(0,Math.ceil(DAY_LEN-S.phaseT)); setText($('dayLbl'),'Tag '+S.day);
     setText($('dayInfo'),(isBossNight(S.day)?'Boss in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true;
     $('btnNight').hidden=S.flags.sold<1; $('btnNight').classList.toggle('pulse',onlyNightsLeft()); setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
@@ -2146,6 +2149,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.6a</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v1.6b</div>
 </body>
 </html>
