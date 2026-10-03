@@ -478,12 +478,12 @@ const UPG=[
 function ammoRate(){ const m=G.maps.mine; if(!m||!m.inst.munpresse1||!m.inst.munpresse1.unlocked) return 0; return 0.5*(1+0.2*((m.lv.munpresse||1)-1)); }
 const AMMO_CAP=150, SHOTGUN_COST=5000, CROSSBOW_COST=9000;
 const DIFFS={
-  easy:  {name:'Einfach',cost:0.8, cnt:1,   hp:1,    grow:0,     dmg:1,   spec:1,   spawn:1,    group:0,    loss:0.2,
+  easy:  {name:'Einfach',cost:0.8, cnt:1,   hp:1,    grow:0,     dmg:1,   spec:1,   spawn:1,    group:0,    loss:0.2, inc:1,
     desc:'Entspannte Nächte. Schon wenig Verteidigung reicht, ideal zum Nebenbei-Spielen. Verteidigung ist 20 % günstiger.'},
-  normal:{name:'Mittel', cost:1,   cnt:1.4, hp:1.2,  grow:0.012, dmg:1.3, spec:1.4, spawn:0.8,  group:0.25, loss:0.3,
+  normal:{name:'Mittel', cost:1,   cnt:1.4, hp:1.2,  grow:0.012, dmg:1.3, spec:1.4, spawn:0.8,  group:0.25, loss:0.3, inc:1,
     desc:'Mehr Zombies, die von Nacht zu Nacht stärker werden, oft in Horden. Du musst die Verteidigung nach und nach ausbauen.'},
-  hard:  {name:'Schwer', cost:1.25,cnt:1.8, hp:1.45, grow:0.025, dmg:1.6, spec:1.8, spawn:0.65, group:0.4,  loss:1,
-    desc:'Noch mehr und härtere Zombies. Ohne starke Verteidigung geht nichts. Verteidigung ist 25 % teurer. Fällt die Mauer, ist der ganze Spielstand weg!'}
+  hard:  {name:'Schwer', cost:1,   cnt:1.8, hp:1.45, grow:0.025, dmg:1.6, spec:1.8, spawn:0.65, group:0.4,  loss:1, inc:1.25,
+    desc:'Noch mehr und härtere Zombies. Ohne starke Verteidigung geht nichts. Dafür +25 % Einnahmen. Fällt die Mauer, ist der ganze Spielstand weg!'}
 };
 const DF=()=>DIFFS[G.diff]||DIFFS.easy;
 // Spezial-Aufrüstungen: je Map zwei, gelten nur dort
@@ -588,7 +588,7 @@ const chainOf=g=>{const t=PRODUCER[g];return STY[t].inp.flatMap(chainOf).concat(
 const chainReady=g=>chainOf(g).every(typeBuilt);
 const multiChain=g=>chainOf(g).some(t=>STY[t].inp.length>1);
 const bonusMul=()=>(1+0.1*G.stars)*(1+0.02*Object.keys(G.ach).length);
-const priceAt=(g,l)=>GOODS[g].price*(1+0.25*(l-1))*bonusMul();
+const priceAt=(g,l)=>GOODS[g].price*(1+0.25*(l-1))*bonusMul()*(DF().inc||1);
 const goodPrice=g=>priceAt(g,S.lv[PRODUCER[g]]);
 function impSrc(t){ const imp=STY[t].imp; if(!imp) return null; return typeof imp==='string'?{map:'farm',type:imp}:imp; }
 function farmBoost(t){ const src=impSrc(t); if(!src) return 1; const f=G.maps[src.map]; return 1+0.12*((f?f.lv[src.type]:1)-1); }
@@ -2145,6 +2145,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.0</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.1a</div>
 </body>
 </html>
