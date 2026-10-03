@@ -50,6 +50,13 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dayrow{display:flex;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden}
 .nightbtn{pointer-events:auto;border:1px solid #6a4a8a;background:#2a2238;color:#d8c8f0;border-radius:6px;padding:3px 8px;font:700 11px var(--body)}
 .nightbtn:active{transform:translateY(1px)}
+#cards{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:9;pointer-events:auto;width:min(560px,calc(100vw - 20px));background:rgba(23,25,15,.94);border:1.5px solid var(--gold);border-radius:10px;padding:8px;box-sizing:border-box}
+#cards h3{margin:0 0 6px;font:700 13px var(--body);color:var(--gold);text-align:center}
+#cards .cr{display:flex;gap:6px}
+#cards button{flex:1;min-width:0;text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--bone);border-radius:8px;padding:7px 8px;font:600 11.5px/1.35 var(--body);cursor:pointer}
+#cards button b{display:block;font-size:12.5px;color:var(--sand);margin-bottom:2px}
+#cards button:active{transform:translateY(1px)}
+body.cardsOn #ctx{display:none!important}
 .nightbtn.skill{border-color:#c9642f;background:#3a2414;color:#ffd7a0}
 .nightbtn.skill:disabled{opacity:.55}
 .nightbtn.pulse{animation:nbPulse 1.4s ease-in-out infinite;border-color:#b48ae8;color:#fff}
@@ -192,6 +199,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   </div>
 </div>
 
+<div id="cards" hidden><h3 id="cardsT">Taktik-Karte wählen</h3><div class="cr" id="cardsR"></div></div>
 <div class="modal" id="endres" hidden>
   <div class="sheet" role="dialog" aria-labelledby="eTitle">
     <h2 id="eTitle">Endlos-Verteidigung</h2>
@@ -621,7 +629,7 @@ const gunRate=()=>2*(1+0.12*upLv('rate'));
 const guardDmg=()=>8*Math.pow(1.3,upLv('guard'));
 const wireDps=()=>S.up.wire?1.5*S.up.wire*Math.pow(1.12,S.up.wire):0;
 const wireSlow=()=>1-Math.min(0.5,0.07*S.up.wire);
-const repairRate=()=>10+3*S.up.wall;
+const repairRate=()=>(10+3*S.up.wall)*(1+0.3*cb('rep'));
 const upgCost=u=>Math.round(u.base*Math.pow(u.mul,upLv(u.id))*(u.id==='magnet'?1:DF().cost));
 const wallMax=()=>Math.round((250+150*S.up.wall)*(1+0.05*sl('steel')));
 const turretDmg=l=>9*Math.pow(1.35,l-1);
@@ -1133,16 +1141,17 @@ function shoot(x,y,range,dmg,from){
   if(!inRange.length) return null;
   const targets=(from==='p'&&G.shotgun)?inRange.slice(0,3):[inRange[0]];
   const d=(from==='p'&&G.shotgun)?dmg*0.75:dmg;
-  for(const t of targets){ t.hp-=d; t.hit=0.1; tracers.push({x1:x,y1:y,x2:t.x,y2:t.y-8,t:0,c:from==='r'?'#5ae0f0':ammo?'#ff9a3a':from==='p'?'#ffe08a':from==='g'?'#bfe08a':'#ffd0a0'});
+  for(const t of targets){ t.hp-=d*cardMul(t); t.hit=0.1; tracers.push({x1:x,y1:y,x2:t.x,y2:t.y-8,t:0,c:from==='r'?'#5ae0f0':ammo?'#ff9a3a':from==='p'?'#ffe08a':from==='g'?'#bfe08a':'#ffd0a0'});
     if(t.hp<=0) killReward(t); }
   return targets[0];
 }
-function hurt(z,d){ if(z.dead) return; z.hp-=d; z.hit=0.12; if(z.hp<=0) killReward(z); }
+function hurt(z,d){ if(z.dead) return; z.hp-=d*cardMul(z); z.hit=0.12; if(z.hp<=0) killReward(z); }
 function segDist(px,py,ax,ay,bx,by){ const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy; let t=l?((px-ax)*dx+(py-ay)*dy)/l:0; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-ax-t*dx,py-ay-t*dy); }
 const zRef=()=>zHp(ND())*(1+0.25*(MD.num-1)); // Leben eines normalen Zombies hier und heute
 function specSlow(z){ const y1=COMP.y1; let m=1;
   if(sl('hay')&&z.y>y1+110&&z.y<y1+200) m*=1-Math.min(0.5,0.06*sl('hay'));
   if(sl('lore')&&z.y<y1+100) m*=1-Math.min(0.6,0.08*sl('lore'));
+  if(cb('slow')) m*=Math.max(0.5,1-0.1*cb('slow'));
   return m; }
 const LASER_O={x:770,y:COMP.y1-14}, CATA_O={x:230,y:COMP.y1-14}, GUN_O={x:GATE_X-GATE_HALF,y:COMP.y1-30};
 function updateSpecials(dt){
@@ -1169,40 +1178,82 @@ function skillInfo(){ if(S.phase!=='night') return null;
   if(sl('shield')>0) return {id:'shield',ready:shieldCd<=0,text:shieldT>0?'🛡️ Schild aktiv '+Math.ceil(shieldT)+'s':shieldCd>0?'🛡️ Schild '+Math.ceil(shieldCd)+'s':'🛡️ Schild'};
   return null; }
 function useSkill(){ const k=skillInfo(); if(!k||!k.ready) return; const y1=COMP.y1, ref=zRef();
-  if(k.id==='blast'){ blastUsed=true; const l=sl('blast'); for(const z of zombies) if(!z.dead&&z.y<y1+260) hurt(z,ref*(1.5+0.5*l));
+  if(k.id==='blast'){ blastUsed=true; const l=sl('blast'); for(const z of zombies) if(!z.dead&&z.y<y1+260) hurt(z,ref*(1.5+0.5*l)*(1+0.5*cb('boom')));
     for(let i=0;i<7;i++) burst(160+i*113,y1+70+Math.random()*120,'#f08a2a',22); beep(60,.7,'sawtooth',.09,-30); toast('BUMM!',1200); }
-  if(k.id==='shield'){ const l=sl('shield'); shieldT=5+0.3*l; shieldCd=45-2*l; beep(900,.3,'sine',.05,400); toast('Energieschild aktiv!',1500); } }
+  if(k.id==='shield'){ const l=sl('shield'); shieldT=5+0.3*l; shieldCd=(45-2*l)*Math.pow(0.75,cb('shcd')); beep(900,.3,'sine',.05,400); toast('Energieschild aktiv!',1500); } }
 // ---------- Endlos-Verteidigung (Labor) ----------
+// Taktik-Karten (Finale): nach jeder Welle 1 von 3 wählen, gelten bis zum Weltende
+const CARDS=[
+  {id:'dmg',  name:'Scharfschützen', desc:'+15 % Schaden für alle Abwehr'},
+  {id:'giant',name:'Panzerbrecher',  desc:'+40 % Schaden gegen Riesen und Bosse'},
+  {id:'slow', name:'Schlamm',        desc:'Zombies 10 % langsamer', ok:()=>cb('slow')<5},
+  {id:'rep',  name:'Werkzeugkiste',  desc:'Reparieren +30 %'},
+  {id:'mine', name:'Minenfeld',      desc:'+4 Minen vor jeder Welle'},
+  {id:'wall', name:'Notreparatur',   desc:'Mauer sofort +40 %', once:true, ok:()=>S.wallHp<wallMax()*0.85},
+  {id:'cash', name:'Kriegskasse',    desc:'', once:true},
+  {id:'shcd', name:'Kondensator',    desc:'Schild lädt 25 % schneller', ok:()=>sl('shield')>0},
+  {id:'boom', name:'Sprengmeister',  desc:'Sprengladung +50 % Schaden', ok:()=>sl('blast')>0},
+];
+const cb=id=>(endless&&endless.cards&&endless.cards[id])||0;
+const cardMul=z=>endless?(1+0.15*cb('dmg'))*((z.boss||z.brute)?1+0.4*cb('giant'):1):1;
+const cashAmt=()=>Math.round(1200*Math.max(1,endless.wave)*MD.num);
+function cardDesc(c){ return c.id==='cash'?'Sofort $'+fmt(cashAmt())+' für Verteidigung':c.desc; }
+function offerCards(){ const pool=CARDS.filter(c=>!c.ok||c.ok()); const pick=[];
+  while(pick.length<3&&pool.length) pick.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  endless.offer=pick.map(c=>c.id); renderCards(); }
+function renderCards(){ const box=$('cards'), on=!!(endless&&endless.offer); document.body.classList.toggle('cardsOn',on); if(!on){ box.hidden=true; return; }
+  $('cardsT').textContent='Taktik-Karte wählen · Welle '+endless.wave+' geschafft'; const r=$('cardsR'); r.innerHTML='';
+  for(const id of endless.offer){ const c=CARDS.find(x=>x.id===id), n=cb(id);
+    const b=document.createElement('button'); b.innerHTML='<b>'+c.name+(n&&!c.once?' ('+(n+1)+'×)':'')+'</b>'+cardDesc(c);
+    b.onclick=()=>{ initAudio(); takeCard(id,false); }; r.appendChild(b); }
+  box.hidden=false; }
+function takeCard(id,auto){ if(!endless) return; const c=CARDS.find(x=>x.id===id);
+  if(id==='wall') S.wallHp=Math.min(wallMax(),S.wallHp+wallMax()*0.4);
+  else if(id==='cash'){ const m=cashAmt(); S.money+=m; S.lifetime+=m; }
+  else endless.cards[id]=(endless.cards[id]||0)+1;
+  endless.offer=null; renderCards(); beep(660,.12,'triangle',.05,330);
+  toast((auto?'Zufällig gewählt: ':'Karte: ')+c.name,1800); }
+// Wagemut: Welle früh rufen (mind. 10 s Pause übrig) bringt Wagemut, je 5 = +1 Stern
+const DARE_PER_STAR=5, DARE_MIN=10;
+const dareOk=()=>endless&&endless.wave>=1&&endless.pause>=DARE_MIN;
+const dareStars=n=>Math.floor((n||0)/DARE_PER_STAR);
 function endG(){ if(!G.endless) G.endless={best:{},stars:0}; return G.endless; }
 const endBest=()=>Math.max(0,...Object.values(endG().best));
 const endUnlocked=()=>MD.id==='labor'&&!!S.flags.mapDone;
 const END_PAUSE=20;
 function startEndless(){ if(!endUnlocked()||S.phase!=='day') return;
-  $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:30,eday:S.day}; G.finale={done:0}; save();
+  $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:30,eday:S.day,cards:{},dare:0,offer:null}; G.finale={done:0,dare:0}; save();
   toast('Das Finale beginnt! 30 s Vorbereitung – gib dein Geld für Verteidigung aus.',4000); }
 function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*1.5);
-  zSpawnLeft=zCount(ND())+(bossNow()?1:0); zSpawnT=1; mines=[]; for(let i=0;i<2*S.up.mine;i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
+  zSpawnLeft=zCount(ND())+(bossNow()?1:0); zSpawnT=1; mines=[];
+  if(endless.offer){ const ids=endless.offer; takeCard(ids[Math.floor(Math.random()*ids.length)],true); }
+  for(let i=0;i<2*S.up.mine+4*cb('mine');i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
   blastUsed=false; specT={oil:1,cata:1,gun:0,laser:0};
   toast((bossNow()?'Bosswelle ':'Welle ')+endless.wave+'!',1800); beep(180,.4,'sawtooth',.05,-80); }
 function waveCleared(){ const w=endless.wave, e=endG(), d=G.diff||'easy';
   const bonus=Math.round(400*w*MD.num); S.money+=bonus; S.lifetime+=bonus;
   if(w>(e.best[d]||0)) e.best[d]=w;
-  G.finale={done:w};
-  let msg='Welle '+w+' geschafft! +$'+fmt(bonus)+' · Sterne bei Weltende: '+(runStars()+Math.floor(w/10))+' ★';
-  if(w%10===0){ msg='Welle '+w+'! +1 ★ für dieses Finale · gesamt '+(runStars()+Math.floor(w/10))+' ★'; beep(880,.4,'triangle',.06,440); }
-  toast(msg,3200); endless.pause=END_PAUSE; save(); }
+  G.finale={done:w,dare:endless.dare};
+  const tot=runStars()+Math.floor(w/10)+dareStars(endless.dare);
+  let msg='Welle '+w+' geschafft! +$'+fmt(bonus)+' · Sterne bei Weltende: '+tot+' ★';
+  if(w%10===0){ msg='Welle '+w+'! +1 ★ für dieses Finale · gesamt '+tot+' ★'; beep(880,.4,'triangle',.06,440); }
+  toast(msg,3200); endless.pause=END_PAUSE; offerCards(); save(); }
+function callWave(){ if(dareOk()){ endless.dare++; G.finale={done:endless.wave,dare:endless.dare};
+    const left=DARE_PER_STAR-endless.dare%DARE_PER_STAR;
+    toast(endless.dare%DARE_PER_STAR===0?'⚡ Wagemut '+endless.dare+' → +1 ★!':'⚡ Wagemut '+endless.dare+' · noch '+left+' bis +1 ★',2000); save(); }
+  endless.pause=0; nextWave(); }
 // Weltende: Sterne gutschreiben, neue Welt starten
-function finishWorld(done){ const e=endG(), d=G.diff||'easy';
+function finishWorld(done,dare){ const e=endG(), d=G.diff||'easy';
   if(done>(e.best[d]||0)) e.best[d]=done;
-  const rs=runStars(), ws=Math.floor(done/10), gain=rs+ws;
-  endless=null; G.finale=null; zombies=[]; mines=[]; globs=[]; pots=[];
-  doPrestige(gain); showEndResult(done,rs,ws); }
-function endEndless(){ finishWorld(endless.wave-1); }
+  const rs=runStars(), ws=Math.floor(done/10), ds=dareStars(dare), gain=rs+ws+ds;
+  endless=null; G.finale=null; zombies=[]; mines=[]; globs=[]; pots=[]; $('cards').hidden=true; document.body.classList.remove('cardsOn');
+  doPrestige(gain); showEndResult(done,rs,ws,ds,dare||0); }
+function endEndless(){ finishWorld(endless.wave-1,endless.dare); }
 function shareText(n){ return `🏆 Letzter Außenposten – Endlos-Verteidigung: Welle ${n} auf ${DF().name} geschafft! Schaffst du mehr? https://reflex32-stack.github.io/Letzter-aussenposten/`; }
 function copyShare(n,ta){ const t=shareText(n); const done=()=>toast('Text kopiert – jetzt in Discord einfügen!',2400);
   try{ navigator.clipboard.writeText(t).then(done,()=>{ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } toast('Text markiert – jetzt kopieren',2400); }); }catch(e){ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } } }
-function showEndResult(n,rs,ws){ const d=G.diff||'easy', best=endG().best[d]||0;
-  $('eTitle').textContent='Das Ende dieser Welt'; $('eText').innerHTML=`Du hast im Finale <b style="color:var(--bone)">${n} ${n===1?'Welle':'Wellen'}</b> überstanden (Rekord auf ${DF().name}: ${best}).<br><br>Sterne: <b style="color:var(--gold)">+${rs} ★</b> Durchlauf (${DF().name})${ws?` · <b style="color:var(--gold)">+${ws} ★</b> Wellen`:''}<br>Du startest jetzt eine neue Welt mit <b style="color:var(--gold)">${G.stars} ★</b> = +${G.stars*10} % auf alle Verkäufe.`;
+function showEndResult(n,rs,ws,ds,dare){ const d=G.diff||'easy', best=endG().best[d]||0;
+  $('eTitle').textContent='Das Ende dieser Welt'; $('eText').innerHTML=`Du hast im Finale <b style="color:var(--bone)">${n} ${n===1?'Welle':'Wellen'}</b> überstanden (Rekord auf ${DF().name}: ${best}).<br><br>Sterne: <b style="color:var(--gold)">+${rs} ★</b> Durchlauf (${DF().name})${ws?` · <b style="color:var(--gold)">+${ws} ★</b> Wellen`:''}${ds?` · <b style="color:var(--gold)">+${ds} ★</b> Wagemut (${dare} ⚡)`:''}<br>Du startest jetzt eine neue Welt mit <b style="color:var(--gold)">${G.stars} ★</b> = +${G.stars*10} % auf alle Verkäufe.`;
   const ta=$('eShareTxt'); ta.hidden=true; $('eShare').onclick=()=>copyShare(n,ta); $('eOk').textContent='Neue Welt starten'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; };
   $('endres').hidden=false; beep(120,.6,'sawtooth',.05,-60); }
 function updateNight(dt){
@@ -1318,7 +1369,7 @@ function refreshCtx(){
 let tab='team', resetArm=false, prestigeArm=false, codeDraft='';
 function openMenu(t){ initAudio(); if(t) tab=t; resetArm=false; renderMenu(); $('menu').hidden=false; }
 $('btnMenu').onclick=()=>openMenu();
-$('btnNight').onclick=()=>{ initAudio(); if(endless&&endless.pause>0){ endless.pause=0; nextWave(); return; } if(S.phase==='day'&&!anyModal()) startNight(); };
+$('btnNight').onclick=()=>{ initAudio(); if(endless&&endless.pause>0){ callWave(); return; } if(S.phase==='day'&&!anyModal()) startNight(); };
 $('btnSkill').onclick=()=>{ initAudio(); useSkill(); };
 $('jobPill').onclick=()=>{ jobOpen=!jobOpen; hudT=0; };
 $('hint').onclick=()=>{ hintHideT=0; $('hint').classList.add('gone'); };
@@ -1419,7 +1470,7 @@ function renderMenu(){
     body.appendChild(b);
     if(MD.id==='labor'){ const e=endG(), d=G.diff||'easy', best=e.best[d]||0;
       body.appendChild(h3('Finale · Endlos-Verteidigung'));
-      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Das Ende dieser Welt: Welle um Welle, bis die Mauer fällt. Danach beginnt eine <b style="color:var(--bone)">neue Welt</b> mit deinen Sternen.<br>Sterne: <b style="color:var(--gold)">${runStars()} ★</b> für den Durchlauf (${DF().name}) <b style="color:var(--gold)">+ 1 ★ je 10 Wellen</b>. Zwischen den Wellen ${END_PAUSE} s Pause, vor Welle 1 sogar 30 s.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Labor, um das Finale freizuschalten. Erst danach gibt es neue Sterne.'; body.appendChild(q);
+      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Das Ende dieser Welt: Welle um Welle, bis die Mauer fällt. Danach beginnt eine <b style="color:var(--bone)">neue Welt</b> mit deinen Sternen.<br>Sterne: <b style="color:var(--gold)">${runStars()} ★</b> für den Durchlauf (${DF().name}) <b style="color:var(--gold)">+ 1 ★ je 10 Wellen</b>. Zwischen den Wellen ${END_PAUSE} s Pause, vor Welle 1 sogar 30 s.<br>Nach jeder Welle wählst du eine <b style="color:var(--bone)">Taktik-Karte</b>. Rufst du die nächste Welle früh (mind. ${DARE_MIN} s Pause übrig), gibt es <b style="color:var(--gold)">⚡ Wagemut</b>: je ${DARE_PER_STAR} = +1 ★.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Labor, um das Finale freizuschalten. Erst danach gibt es neue Sterne.'; body.appendChild(q);
       if(endUnlocked()){ const rr2=document.createElement('div'); rr2.className='row-end';
         const sb=document.createElement('button'); sb.className='btn'; sb.textContent=endless?'Läuft …':(finaleArm?'Wirklich? Diese Welt endet danach!':'Finale starten'); sb.disabled=!!endless||S.phase!=='day'; sb.onclick=()=>{ if(!finaleArm){ finaleArm=true; renderMenu(); return; } finaleArm=false; startEndless(); };
         const shb=document.createElement('button'); shb.className='btn dark'; shb.textContent='🏆 Rekord teilen'; shb.disabled=best<1; shb.onclick=()=>copyShare(best,null);
@@ -2070,7 +2121,7 @@ function hud(dt){
     setText($('dayInfo'),(isBossNight(S.day)?'Boss in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true;
     $('btnNight').hidden=S.flags.sold<1; $('btnNight').classList.toggle('pulse',onlyNightsLeft()); setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
   { const k=skillInfo(), b=$('btnSkill'); b.hidden=!k; if(k){ setText(b,k.text); b.disabled=!k.ready; } }
-  if(S.phase==='day'){} else if(endless){ const pz=endless.pause>0; $('btnNight').hidden=!pz; $('btnNight').classList.remove('pulse'); if(pz) setText($('btnNight'),'Nächste Welle ▶');
+  if(S.phase==='day'){} else if(endless){ const pz=endless.pause>0; $('btnNight').hidden=!pz; $('btnNight').classList.remove('pulse'); if(pz) setText($('btnNight'),dareOk()?'Jetzt ▶ +1 ⚡':'Nächste Welle ▶');
     setText($('dayLbl'),endless.wave?(bossNow()?'Bosswelle ':'Welle ')+endless.wave:'Endlos');
     setText($('dayInfo'),(pz?'Pause '+Math.ceil(endless.pause)+'s':(zombies.length+zSpawnLeft)+' Zombies')+' · Mauer '+Math.max(0,Math.ceil(S.wallHp)));
     $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
@@ -2125,7 +2176,7 @@ for(const id in G.maps){ const m=G.maps[id]; if(m.incRate==null) m.incRate=0; }
   const fin=()=>offline(el0), pick=()=>{ if(!G.diff) showDiff(fin); else fin(); };
   if(!S.flags.intro){ G.seenVer=NEWS_VER; if(!G.diff) showDiff(showIntro); else showIntro(); }
   else if(G.seenVer&&verLt(G.seenVer,NEWS_VER)){ const from=G.seenVer; showNews(pick,from); } else pick(); }
-if(G.finale&&G.maps.labor){ const d0=G.finale.done||0; setTimeout(()=>{ $('news').hidden=true; $('welcome').hidden=true; if(G.cur!=='labor'){ G.cur='labor'; } finishWorld(d0); toast('Das Finale wurde unterbrochen und ist ausgewertet.',3500); },600); }
+if(G.finale&&G.maps.labor){ const d0=G.finale.done||0; setTimeout(()=>{ $('news').hidden=true; $('welcome').hidden=true; if(G.cur!=='labor'){ G.cur='labor'; } finishWorld(d0,G.finale.dare||0); toast('Das Finale wurde unterbrochen und ist ausgewertet.',3500); },600); }
 setInterval(save,5000);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 addEventListener('pagehide',save);
@@ -2145,6 +2196,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.1a</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.1b</div>
 </body>
 </html>
