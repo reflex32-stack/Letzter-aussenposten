@@ -57,6 +57,20 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #cards button{flex:1;min-width:0;text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--bone);border-radius:8px;padding:7px 8px;font:600 11.5px/1.35 var(--body);cursor:pointer}
 #cards button b{display:block;font-size:12px;color:var(--sand);margin-bottom:2px;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:anywhere}
 #cards button:active{transform:translateY(1px)}
+.nightbtn.expo{border-color:#5a8a4a;background:#1e3018;color:#c8f0b0}
+body.expoOn #hud,body.expoOn #ctx,body.expoOn #hint,body.expoOn #cards{display:none!important}
+#expoHud{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:8;width:min(520px,calc(100vw - 20px));pointer-events:auto;
+  background:rgba(23,25,15,.86);border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;box-sizing:border-box;font:700 13px var(--body);color:var(--bone)}
+#expoHud .r{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#expoHud .b{height:7px;background:rgba(0,0,0,.5);border-radius:4px;overflow:hidden;margin-top:5px}
+#expoHud .b i{display:block;height:100%;width:0}
+#exHp{background:#e0503a} #exXp{background:#7ae07a}
+#expoHud button{background:#3a2414;border:1px solid #c9642f;color:#ffd7a0;border-radius:6px;padding:3px 8px;font:700 11px var(--body)}
+#expoUp{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;width:min(560px,calc(100vw - 20px));background:rgba(23,25,15,.96);border:1.5px solid var(--gold);border-radius:10px;padding:10px;box-sizing:border-box}
+#expoUp h3{margin:0 0 8px;font:700 14px var(--body);color:var(--gold);text-align:center}
+#expoUp .cr{display:flex;gap:6px}
+#expoUp button{flex:1;min-width:0;text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--bone);border-radius:8px;padding:9px 8px;font:600 11.5px/1.35 var(--body);cursor:pointer}
+#expoUp button b{display:block;font-size:12.5px;color:var(--sand);margin-bottom:3px;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:anywhere}
 body.cardsOn #ctx{display:none!important}
 .nightbtn.skill{border-color:#c9642f;background:#3a2414;color:#ffd7a0}
 .nightbtn.skill:disabled{opacity:.55}
@@ -146,7 +160,7 @@ body.cardsOn #ctx{display:none!important}
 <div id="hud">
   <div class="top">
     <div class="pill money" aria-label="Geld"><span class="coin"></span><span id="money">0</span><span class="lv"><b id="pLvl">Lv 1</b><i id="pStars" hidden></i></span></div>
-    <div class="pill day"><div class="dayrow"><span id="dayLbl">Tag 1</span><span id="dayInfo"></span></div><button class="nightbtn" id="btnNight">Nacht starten</button><button class="nightbtn skill" id="btnSkill" hidden></button><div class="wallbar" id="wallBar" hidden><i id="wallFill"></i></div></div>
+    <div class="pill day"><div class="dayrow"><span id="dayLbl">Tag 1</span><span id="dayInfo"></span></div><button class="nightbtn" id="btnNight">Nacht starten</button><button class="nightbtn skill" id="btnSkill" hidden></button><button class="nightbtn expo" id="btnExpo" hidden>🗺️ Expedition</button><div class="wallbar" id="wallBar" hidden><i id="wallFill"></i></div></div>
     <div class="topbtns"><button class="btn" id="btnMenu">Menü<span class="dot" id="menuDot" hidden></span></button></div>
   </div>
   <button class="pill job" id="jobPill" hidden><span id="jobTxt"></span><div class="xpbar"><i id="jobBar"></i></div></button>
@@ -200,6 +214,8 @@ body.cardsOn #ctx{display:none!important}
   </div>
 </div>
 
+<div id="expoHud" hidden><div class="r"><span id="exTime"></span><span id="exInfo"></span><button id="exQuit">Aufgeben</button></div><div class="b"><i id="exHp"></i></div><div class="b"><i id="exXp"></i></div></div>
+<div id="expoUp" hidden><h3 id="expoUpT"></h3><div class="cr" id="expoUpR"></div></div>
 <div id="cards" hidden><h3 id="cardsT">Taktik-Karte wählen</h3><p id="cardsN" hidden></p><div class="cr" id="cardsR"></div></div>
 <div class="modal" id="endres" hidden>
   <div class="sheet" role="dialog" aria-labelledby="eTitle">
@@ -559,7 +575,7 @@ let G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:fals
 function load(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
-    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.seenVer=o.seenVer||'1.0'; G.diff=DIFFS[o.diff]?o.diff:null; G.endless=o.endless||null; G.finale=o.finale||null; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
+    if(raw){ const o=JSON.parse(raw); G.cur=MAPDEFS[o.cur]?o.cur:'farm'; G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.ammo=o.ammo||0; G.shotgun=!!o.shotgun; G.crossbow=!!o.crossbow; G.robotsFree=o.robotsFree||0; G.gup=o.gup||null; G.seenVer=o.seenVer||'1.0'; G.diff=DIFFS[o.diff]?o.diff:null; G.endless=o.endless||null; G.finale=o.finale||null; G.exRec=o.exRec||null; G.ammoDeliv=o.ammoDeliv||0; G.stars=o.stars||0; G.prestiges=o.prestiges||0; G.ach=o.ach||{};
       for(const id in (o.maps||{})) if(MAPDEFS[id]) G.maps[id]=fixMap(o.maps[id],id); }
     else { const old=localStorage.getItem(OLD_KEY);
       if(old){ const o=JSON.parse(old); G.player=Object.assign({lvl:1,xp:0},o.player||{}); G.maps.farm=fixMap(o,'farm'); } }
@@ -569,7 +585,7 @@ function load(){
     for(const id in G.maps){ const u=G.maps[id].up||{}; for(const k of GLOBAL_UPG) G.gup[k]=Math.max(G.gup[k],u[k]||0); } }
   S=G.maps[G.cur];
 }
-function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),seenVer:G.seenVer||NEWS_VER,diff:G.diff,endless:G.endless||null,finale:G.finale||null,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
+function saveObj(){ const o={cur:G.cur,player:G.player,maps:{},ammo:G.ammo,shotgun:G.shotgun,crossbow:G.crossbow,robotsFree:G.robotsFree,ammoDeliv:G.ammoDeliv||0,gup:gup(),seenVer:G.seenVer||NEWS_VER,diff:G.diff,endless:G.endless||null,finale:G.finale||null,exRec:G.exRec||null,stars:G.stars,prestiges:G.prestiges,ach:G.ach};
   for(const id in G.maps){ const m=Object.assign({},G.maps[id]); delete m.player; o.maps[id]=m; } return o; }
 function save(){ S.last=Date.now(); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saveObj())); }catch(e){} }
 // ---------- Spielstand-Code (zwischen Geräten übertragen) ----------
@@ -738,6 +754,7 @@ addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(anyModal()){ if(k==='escape') closeModals(); return; }
   keys[k]=true;
+  if(expo){ if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault(); return; }
   if(k==='e'&&near) doUpgrade(near);
   if(k==='m') openMenu();
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
@@ -1271,7 +1288,7 @@ function copyShare(n,ta){ const t=shareText(n); const done=()=>toast('Text kopie
   try{ navigator.clipboard.writeText(t).then(done,()=>{ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } toast('Text markiert – jetzt kopieren',2400); }); }catch(e){ if(ta){ ta.hidden=false; ta.value=t; ta.select(); } } }
 function showEndResult(n,rs,ws,ds,dare){ const d=G.diff||'easy', best=endG().best[d]||0;
   $('eTitle').textContent='Das Ende dieser Welt'; $('eText').innerHTML=`Du hast im Finale <b style="color:var(--bone)">${n} ${n===1?'Welle':'Wellen'}</b> überstanden (Rekord auf ${DF().name}: ${best}).<br><br>Sterne: <b style="color:var(--gold)">+${rs} ★</b> Durchlauf (${DF().name})${ws?` · <b style="color:var(--gold)">+${ws} ★</b> Wellen`:''}${ds?` · <b style="color:var(--gold)">+${ds} ★</b> Wagemut (${dare} ⚡)`:''}<br>Du startest jetzt eine neue Welt mit <b style="color:var(--gold)">${G.stars} ★</b> = +${G.stars*10} % auf alle Verkäufe.`;
-  const ta=$('eShareTxt'); ta.hidden=true; $('eShare').onclick=()=>copyShare(n,ta); $('eOk').textContent='Neue Welt starten'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; };
+  const ta=$('eShareTxt'); ta.hidden=true; $('eShare').hidden=false; $('eShare').onclick=()=>copyShare(n,ta); $('eOk').textContent='Neue Welt starten'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; };
   $('endres').hidden=false; beep(120,.6,'sawtooth',.05,-60); }
 function updateNight(dt){
   zSpawnT-=dt;
@@ -1389,6 +1406,8 @@ function openMenu(t){ initAudio(); if(t) tab=t; resetArm=false; renderMenu(); $(
 $('btnMenu').onclick=()=>openMenu();
 $('btnNight').onclick=()=>{ initAudio(); if(endless&&endless.pause>0){ callWave(); return; } if(S.phase==='day'&&!anyModal()) startNight(); };
 $('btnSkill').onclick=()=>{ initAudio(); useSkill(); };
+$('btnExpo').onclick=()=>{ initAudio(); startExpo(); };
+$('exQuit').onclick=()=>{ initAudio(); const b=$('exQuit'); if(!b._arm){ b._arm=true; b.textContent='Sicher?'; setTimeout(()=>{ b._arm=false; b.textContent='Aufgeben'; },2500); return; } b._arm=false; b.textContent='Aufgeben'; exitExpo(); };
 $('jobPill').onclick=()=>{ jobOpen=!jobOpen; hudT=0; };
 $('hint').onclick=()=>{ hintHideT=0; $('hint').classList.add('gone'); };
 $('menuClose').onclick=()=>{$('menu').hidden=true;};
@@ -1512,7 +1531,7 @@ const runStars=()=>RUN_STARS[G.diff||'easy']||1;
 function doPrestige(ns){
   workers.forEach(releaseWorker);
   const keep={stars:G.stars+ns,prestiges:G.prestiges+1,ach:G.ach,diff:G.diff,endless:G.endless};
-  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keep.stars,prestiges:keep.prestiges,ach:keep.ach,diff:keep.diff,endless:keep.endless,seenVer:NEWS_VER};
+  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keep.stars,prestiges:keep.prestiges,ach:keep.ach,diff:keep.diff,endless:keep.endless,exRec:G.exRec,seenVer:NEWS_VER};
   G.maps.farm=freshMap('farm'); S=G.maps.farm; S.flags.intro=1;
   unlockAch('prestige'); setupMap('farm'); buildRuntime(); save(); $('menu').hidden=true;
 }
@@ -1595,7 +1614,7 @@ function hardGameOver(){
   const days=Object.values(G.maps).reduce((a,m)=>a+m.day-1,0), nights=Object.values(G.maps).reduce((a,m)=>a+m.nights,0), maps=Object.keys(G.maps).length;
   workers.forEach(releaseWorker);
   const keepStars=G.stars, keepEnd=G.endless, keepPre=G.prestiges;
-  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keepStars,prestiges:keepPre,ach:{},diff:'hard',endless:keepEnd,seenVer:NEWS_VER};
+  G={cur:'farm',player:{lvl:1,xp:0},maps:{},ammo:0,shotgun:false,crossbow:false,robotsFree:0,stars:keepStars,prestiges:keepPre,ach:{},diff:'hard',endless:keepEnd,exRec:G.exRec,seenVer:NEWS_VER};
   G.maps.farm=freshMap('farm'); S=G.maps.farm; S.flags.intro=1;
   setupMap('farm'); buildRuntime(); save();
   $('menu').hidden=true; $('world').hidden=true;
@@ -2139,6 +2158,7 @@ function hud(dt){
     setText($('dayInfo'),(isBossNight(S.day)?'Boss in ':'Nacht in ')+Math.floor(r/60)+':'+String(r%60).padStart(2,'0')); $('wallBar').hidden=true;
     $('btnNight').hidden=S.flags.sold<1; $('btnNight').classList.toggle('pulse',onlyNightsLeft()); setText($('btnNight'),isBossNight(S.day)?'Bossnacht starten':'Nacht starten'); }
   { const k=skillInfo(), b=$('btnSkill'); b.hidden=!k; if(k){ setText(b,k.text); b.disabled=!k.ready; } }
+  $('btnExpo').hidden=!canExpo();
   if(S.phase==='day'){} else if(endless){ const pz=endless.pause>0; $('btnNight').hidden=!pz; $('btnNight').classList.remove('pulse'); if(pz) setText($('btnNight'),dareOk()?'Jetzt ▶ +1 ⚡':'Nächste Welle ▶');
     setText($('dayLbl'),endless.wave?(bossNow()?'Bosswelle ':'Welle ')+endless.wave+(endless.pause<=0&&curMod()?' · '+modInfo(curMod()).name:''):'Endlos');
     setText($('dayInfo'),(pz?'Pause '+Math.ceil(endless.pause)+'s':(zombies.length+zSpawnLeft)+' Zombies')+' · Mauer '+Math.max(0,Math.ceil(S.wallHp)));
@@ -2184,6 +2204,159 @@ function offline(el0){
 }
 
 // =====================================================================
+//  EXPEDITION (Prototyp): Survivor-Lauf außerhalb der Basis
+// =====================================================================
+const EX_W=3000, EX_H=3000, EX_BOSS=300, EX_MAX=150;
+const EXSK=[
+  {id:'molo', name:'🔥 Molotow',    max:5, desc:'Wirft Feuerflächen auf Gruppen'},
+  {id:'saw',  name:'🪚 Kreissägen', max:5, desc:'Sägen kreisen um dich (+1 je Stufe)'},
+  {id:'drone',name:'🤖 Drohne',     max:5, desc:'Fliegt mit und schießt zusätzlich'},
+  {id:'bolt', name:'⚡ Kugelblitz', max:5, desc:'Springt zwischen Zombies hin und her'},
+  {id:'dmg',  name:'🎯 Schaden',    max:5, desc:'Gewehr +20 % Schaden'},
+  {id:'rof',  name:'🔫 Feuerrate',  max:5, desc:'Gewehr schießt 15 % schneller'},
+  {id:'spd',  name:'👟 Tempo',      max:5, desc:'+10 % Laufgeschwindigkeit'},
+  {id:'hp',   name:'❤️ Leben',      max:5, desc:'+25 max. Leben und heilt 25'},
+  {id:'mag',  name:'🧲 Sammelradius',max:5,desc:'Erfahrung aus 40 % mehr Entfernung einsammeln'},
+];
+let expo=null;
+const exSk=id=>(expo&&expo.sk[id])||0;
+const canExpo=()=>S.phase==='day'&&!endless&&Object.keys(G.maps).length>=2;
+function startExpo(){ if(!canExpo()||anyModal()) return; initAudio();
+  expo={t:0,real:0,hp:100,maxHp:100,lvl:1,xp:0,need:5,kills:0,sk:{},z:[],gems:[],bul:[],fires:[],bolts:[],spawnAcc:0,shotT:0,moloT:2,boltT:2,droneT:0.5,
+    boss:null,bossDone:false,pendingUp:0,choosing:false,hitT:0,P:{x:EX_W/2,y:EX_H/2,walk:0,face:0},drone:{x:EX_W/2+30,y:EX_H/2-30,walk:0}};
+  document.body.classList.add('expoOn'); $('expoHud').hidden=false; save();
+  toast('Expedition! Überlebe 5 Minuten, dann kommt der Boss.',3000); beep(300,.3,'sawtooth',.05,200); }
+const exHp=t=>8*Math.pow(1+t/90,1.6)*DF().hp;
+function exSpawn(type){ const E=expo, vw=cw/zoom, vh=ch/zoom, a=Math.random()*Math.PI*2, r=Math.hypot(vw,vh)/2+40;
+  const x=Math.max(20,Math.min(EX_W-20,E.P.x+Math.cos(a)*r)), y=Math.max(20,Math.min(EX_H-20,E.P.y+Math.sin(a)*r));
+  let hp=exHp(E.t), sp=52+Math.random()*10; const z={x,y,walk:Math.random()*6,face:0,atk:0,hit:0,sawCd:0,runner:false,brute:false,boss:false};
+  if(type==='r'){ z.runner=true; hp*=0.6; sp*=1.9; } else if(type==='b'){ z.brute=true; hp*=4; sp*=0.7; } else if(type==='boss'){ z.boss=true; hp*=60; sp=46; }
+  z.hp=z.max=hp; z.sp=sp; E.z.push(z); return z; }
+function exNearest(x,y,range){ let best=null, bd=range; for(const z of expo.z){ if(z.dead) continue; const d=Math.hypot(z.x-x,z.y-y); if(d<bd){ bd=d; best=z; } } return best; }
+function exHurt(z,d){ if(z.dead) return; z.hp-=d; z.hit=0.1; if(z.hp<=0){ z.dead=true; const E=expo; E.kills++;
+    E.gems.push({x:z.x,y:z.y,v:z.boss?40:z.brute?5:1});
+    if(E.gems.length>260){ const g=E.gems.shift(); E.gems[0].v+=g.v; }
+    if(z.boss){ E.bossDone=true; } } }
+function exShot(x,y,t,dmg,c){ const a=Math.atan2(t.y-12-y,t.x-x); expo.bul.push({x,y,vx:Math.cos(a)*650,vy:Math.sin(a)*650,life:0.7,dmg,c}); return a; }
+function updateExpo(dt){ const E=expo, P2=E.P; E.t+=dt; E.real+=dt; if(E.hitT>0) E.hitT-=dt;
+  let ix=joy.dx, iy=joy.dy;
+  if(keys['a']||keys['arrowleft'])ix-=1; if(keys['d']||keys['arrowright'])ix+=1;
+  if(keys['w']||keys['arrowup'])iy-=1; if(keys['s']||keys['arrowdown'])iy+=1;
+  let m=Math.hypot(ix,iy); if(m>1){ix/=m;iy/=m;m=1;}
+  if(m>0.12){ const sp=185*(1+0.1*exSk('spd')); P2.x+=ix*sp*dt; P2.y+=iy*sp*dt; P2.walk+=dt*10*m; }
+  P2.x=Math.max(30,Math.min(EX_W-30,P2.x)); P2.y=Math.max(40,Math.min(EX_H-30,P2.y));
+  // Gegner erzeugen
+  if(E.t<EX_BOSS){ E.spawnAcc+=(1.2+E.t/22)*dt; }
+  else { if(!E.boss){ E.boss=exSpawn('boss'); toast('Der Boss ist da!',2200); beep(80,.8,'sawtooth',.07,-30); } E.spawnAcc+=3*dt; }
+  while(E.spawnAcc>=1){ E.spawnAcc--; if(E.z.length>=EX_MAX) continue; const r=Math.random(); exSpawn(E.t>60&&r<0.2?'r':E.t>120&&r<0.3?'b':'n'); }
+  // Bewegung + einfache Trennung über ein Raster
+  const grid=new Map(), CS=40; for(const z of E.z){ const k=((z.x/CS)|0)*1000+((z.y/CS)|0); let a=grid.get(k); if(!a){a=[];grid.set(k,a);} a.push(z); }
+  const dmgK=DF().dmg;
+  for(const z of E.z){ if(z.hit) z.hit=Math.max(0,z.hit-dt); if(z.sawCd>0) z.sawCd-=dt;
+    const dx=P2.x-z.x, dy=P2.y-z.y, d=Math.hypot(dx,dy)||1, reach=z.boss?38:z.brute?26:20;
+    if(d>reach){ z.x+=dx/d*z.sp*dt; z.y+=dy/d*z.sp*dt; z.walk+=dt*4; }
+    else { E.hp-=(z.boss?20:z.brute?8:3)*dmgK*dt; E.hitT=0.15; z.walk+=dt*2; }
+    z.face=Math.atan2(dy,dx);
+    const gx=(z.x/CS)|0, gy=(z.y/CS)|0, rad=z.boss?30:z.brute?18:12;
+    for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){ const a=grid.get((gx+i)*1000+gy+j); if(!a) continue;
+      for(const o of a){ if(o===z) continue; const ox=z.x-o.x, oy=z.y-o.y, od=Math.hypot(ox,oy), mn=rad+(o.boss?30:o.brute?18:12);
+        if(od>0&&od<mn){ const p=(mn-od)*0.25; z.x+=ox/od*p; z.y+=oy/od*p; } } } }
+  // Gewehr
+  E.shotT-=dt; if(E.shotT<=0){ const t=exNearest(P2.x,P2.y,340); if(t){ P2.face=exShot(P2.x,P2.y-14,t,10*(1+0.2*exSk('dmg')),'#ffe08a'); sfx('rifle'); E.shotT=1/(2*(1+0.15*exSk('rof'))); } }
+  // Drohne
+  { const l=exSk('drone'); if(l){ const dr=E.drone, a=E.t*1.6; moveTo(dr,P2.x+Math.cos(a)*55,P2.y-30+Math.sin(a)*30,320,dt); dr.walk+=dt*6;
+      E.droneT-=dt; if(E.droneT<=0){ const t=exNearest(dr.x,dr.y,320); if(t){ exShot(dr.x,dr.y-30,t,7+4*l,'#5ae0f0'); sfx('laser'); } E.droneT=0.9-0.1*l; } } }
+  // Kugeln
+  for(const b of E.bul){ b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt; if(b.life<=0) continue;
+    for(const z of E.z){ if(z.dead) continue; const r=z.boss?30:z.brute?20:14; if(Math.abs(z.x-b.x)<r&&Math.abs(z.y-14-b.y)<r+6){ exHurt(z,b.dmg); b.life=0; break; } } }
+  E.bul=E.bul.filter(b=>b.life>0);
+  // Kreissägen
+  { const l=exSk('saw'); if(l){ for(let i=0;i<l;i++){ const a=E.t*3.2+i*Math.PI*2/l, sx=P2.x+Math.cos(a)*75, sy=P2.y-12+Math.sin(a)*75;
+      for(const z of E.z){ if(z.dead||z.sawCd>0) continue; if(Math.hypot(z.x-sx,z.y-14-sy)<(z.boss?36:24)){ exHurt(z,14+5*l); z.sawCd=0.35; } } } } }
+  // Molotow
+  { const l=exSk('molo'); if(l){ E.moloT-=dt; if(E.moloT<=0){ const t=exNearest(P2.x,P2.y,320); if(t){ E.fires.push({x:t.x,y:t.y,r:55+8*l,t:3,dps:10+6*l}); beep(200,.15,'sawtooth',.03,-100); } E.moloT=4.2-0.5*l; } } }
+  for(const f of E.fires){ f.t-=dt; for(const z of E.z) if(!z.dead&&Math.hypot(z.x-f.x,(z.y-f.y)*1.4)<f.r) exHurt(z,f.dps*dt); }
+  E.fires=E.fires.filter(f=>f.t>0);
+  // Kugelblitz
+  { const l=exSk('bolt'); if(l){ E.boltT-=dt; if(E.boltT<=0){ E.boltT=2.6-0.25*l; let cur=exNearest(P2.x,P2.y,320);
+      if(cur){ const hit=new Set(), pts=[{x:P2.x,y:P2.y-20}];
+        for(let k=0;k<3+l&&cur;k++){ hit.add(cur); pts.push({x:cur.x,y:cur.y-16}); exHurt(cur,16+7*l);
+          let nx=null, nd=150; for(const z of E.z){ if(z.dead||hit.has(z)) continue; const d=Math.hypot(z.x-cur.x,z.y-cur.y); if(d<nd){ nd=d; nx=z; } } cur=nx; }
+        E.bolts.push({pts,t:0.18}); beep(1200,.1,'square',.025,-800); } } } }
+  for(const b of E.bolts) b.t-=dt; E.bolts=E.bolts.filter(b=>b.t>0);
+  E.z=E.z.filter(z=>!z.dead);
+  // Erfahrung einsammeln
+  const mag=60*(1+0.4*exSk('mag'));
+  for(const g of E.gems){ const d=Math.hypot(P2.x-g.x,P2.y-10-g.y); if(d<mag||g.pull){ g.pull=true; g.x+=(P2.x-g.x)/d*460*dt; g.y+=(P2.y-10-g.y)/d*460*dt; }
+    if(d<16){ g.got=true; E.xp+=g.v; } }
+  E.gems=E.gems.filter(g=>!g.got);
+  while(E.xp>=E.need){ E.xp-=E.need; E.lvl++; E.need=Math.round(6+E.lvl*E.lvl*0.9); E.pendingUp++; beep(880,.15,'triangle',.05,440); }
+  if(E.pendingUp>0&&!E.choosing) exOffer();
+  if(E.bossDone){ finishExpo(true); return; }
+  if(E.hp<=0){ finishExpo(false); return; }
+}
+function exOffer(){ const E=expo, pool=EXSK.filter(s=>exSk(s.id)<s.max), pick=[];
+  if(!pool.length){ E.pendingUp=0; return; }
+  while(pick.length<3&&pool.length) pick.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  E.choosing=true; $('expoUpT').textContent='Stufe '+E.lvl+'! Wähle eine Fähigkeit'; const r=$('expoUpR'); r.innerHTML='';
+  for(const s of pick){ const n=exSk(s.id), b=document.createElement('button');
+    b.innerHTML='<b>'+s.name+' '+(n?'Stufe '+(n+1):'neu')+'</b>'+s.desc;
+    b.onclick=()=>{ initAudio(); E.sk[s.id]=n+1; if(s.id==='hp'){ E.maxHp+=25; E.hp=Math.min(E.maxHp,E.hp+25); }
+      E.pendingUp--; E.choosing=false; $('expoUp').hidden=true; beep(660,.12,'triangle',.05,330); };
+    r.appendChild(b); }
+  $('expoUp').hidden=false; }
+function exitExpo(){ if(!expo) return; finishExpo(false,true); }
+function finishExpo(win,quit){ const E=expo; if(!E) return;
+  const base=Math.max(3,S.incRate||0), mins=E.t/60;
+  let gain=Math.round(base*60*(mins*0.6+E.kills/300)*(win?1.5:0.5));
+  const baseInc=Math.round((S.incRate||0)*E.real);
+  S.money+=gain+baseInc; S.lifetime+=gain+baseInc;
+  const rec=G.exRec||(G.exRec={t:0,kills:0,wins:0}); const newRec=E.t>rec.t;
+  if(newRec) rec.t=E.t; if(E.kills>rec.kills) rec.kills=E.kills; if(win) rec.wins++;
+  expo=null; document.body.classList.remove('expoOn'); $('expoHud').hidden=true; $('expoUp').hidden=true; resetRate(); save();
+  const mm=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+  $('eTitle').textContent=win?'Expedition geschafft!':quit?'Expedition abgebrochen':'Expedition gescheitert';
+  $('eText').innerHTML=`Überlebt: <b style="color:var(--bone)">${mm(E.t)}</b> · Stufe ${E.lvl} · ${E.kills} Zombies${win?' · <b style="color:var(--gold)">Boss besiegt!</b>':''}<br><br>`+
+    `Beute: <b style="color:var(--gold)">+$${fmt(gain)}</b>${win?' (+50 % Boss-Bonus)':' (halbe Beute)'}<br>`+
+    (baseInc>0?`Deine Basis hat währenddessen <b style="color:var(--gold)">$${fmt(baseInc)}</b> verdient.<br>`:'')+
+    `<br>Rekord: ${mm(rec.t)} · ${rec.kills} Zombies${newRec?' · <b style="color:var(--ok)">neuer Rekord!</b>':''}`;
+  $('eShare').hidden=true; $('eShareTxt').hidden=true; $('eOk').textContent='Zurück zur Basis'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; $('eShare').hidden=false; };
+  $('endres').hidden=false; beep(win?660:120,.6,win?'triangle':'sawtooth',.05,win?330:-60); }
+function drawExpo(time){ const E=expo, P2=E.P, vw=cw/zoom, vh=ch/zoom;
+  const camX=Math.max(0,Math.min(EX_W-vw,P2.x-vw/2)), camY=Math.max(-60,Math.min(EX_H-vh,P2.y-vh/2));
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#2a2c1c'; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.setTransform(dpr*zoom,0,0,dpr*zoom,-camX*zoom*dpr,-camY*zoom*dpr);
+  ctx.fillStyle='#55603a'; ctx.fillRect(0,0,EX_W,EX_H);
+  const C=110, i0=Math.floor(camX/C)-1, i1=Math.ceil((camX+vw)/C)+1, j0=Math.floor(camY/C)-1, j1=Math.ceil((camY+vh)/C)+1;
+  for(let i=i0;i<=i1;i++) for(let j=j0;j<=j1;j++){ if(i<0||j<0||i*C>EX_W||j*C>EX_H) continue; const h=((i*73856093)^(j*19349663))>>>0, x=i*C+(h%70), y=j*C+((h>>8)%70), k=(h>>16)%10;
+    if(k<4){ ctx.fillStyle='#6a7444'; ctx.fillRect(x,y,3,7); ctx.fillRect(x+4,y+2,3,6); ctx.fillRect(x-4,y+3,3,5); }
+    else if(k<6){ ctx.fillStyle='#4a5032'; ctx.beginPath(); ctx.ellipse(x,y,18,9,0,0,7); ctx.fill(); }
+    else if(k===6){ ctx.fillStyle='#7a7468'; ctx.beginPath(); ctx.ellipse(x,y,9,6,0,0,7); ctx.fill(); ctx.fillStyle='#8e887a'; ctx.beginPath(); ctx.ellipse(x-2,y-2,5,3,0,0,7); ctx.fill(); }
+    else if(k===7){ ctx.fillStyle='#3e4428'; ctx.beginPath(); ctx.arc(x,y,14,0,7); ctx.fill(); ctx.fillStyle='#4e5a30'; ctx.beginPath(); ctx.arc(x-3,y-4,9,0,7); ctx.fill(); } }
+  ctx.strokeStyle='#2a2c1c'; ctx.lineWidth=8; ctx.strokeRect(0,0,EX_W,EX_H);
+  for(const f of E.fires){ const a=Math.min(1,f.t)*0.55; ctx.fillStyle='rgba(240,120,40,'+a+')'; ctx.beginPath(); ctx.ellipse(f.x,f.y,f.r,f.r/1.4,0,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,200,80,'+a+')'; for(let k=0;k<5;k++){ const ox=Math.sin(time*7+k*2)*f.r*0.6, oy=Math.cos(time*5+k)*f.r*0.3; ctx.beginPath(); ctx.arc(f.x+ox,f.y+oy,5+3*Math.sin(time*20+k),0,7); ctx.fill(); } }
+  for(const g of E.gems){ if(g.x<camX-20||g.x>camX+vw+20||g.y<camY-20||g.y>camY+vh+20) continue; const s=g.v>=5?6:4;
+    ctx.fillStyle=g.v>=40?'#f2c14e':g.v>=5?'#5ae0f0':'#7ae07a'; ctx.beginPath(); ctx.moveTo(g.x,g.y-s); ctx.lineTo(g.x+s*0.7,g.y); ctx.lineTo(g.x,g.y+s); ctx.lineTo(g.x-s*0.7,g.y); ctx.fill(); }
+  const ents=[]; for(const z of E.z){ if(z.x<camX-60||z.x>camX+vw+60||z.y<camY-40||z.y>camY+vh+80) continue; ents.push({y:z.y,f:()=>zombie(z)}); }
+  ents.push({y:P2.y,f:()=>person(P2,'#c9642f','#e8c4a0',{pack:true,gun:true,hat:'#6a4a2a'})});
+  if(exSk('drone')) ents.push({y:E.drone.y,f:()=>drawRobot(E.drone)});
+  ents.sort((a,b)=>a.y-b.y); for(const e of ents) e.f();
+  { const l=exSk('saw'); for(let i=0;i<l;i++){ const a=E.t*3.2+i*Math.PI*2/l, sx=P2.x+Math.cos(a)*75, sy=P2.y-12+Math.sin(a)*75;
+      ctx.save(); ctx.translate(sx,sy); ctx.rotate(time*18); ctx.fillStyle='#c0c8d0'; ctx.beginPath();
+      for(let k=0;k<16;k++){ const rr2=k%2?8:12, aa=k*Math.PI/8; ctx.lineTo(Math.cos(aa)*rr2,Math.sin(aa)*rr2); } ctx.fill(); ctx.fillStyle='#5a6068'; ctx.beginPath(); ctx.arc(0,0,3,0,7); ctx.fill(); ctx.restore(); } }
+  ctx.lineCap='round'; for(const b of E.bul){ ctx.strokeStyle=b.c; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(b.x-b.vx*0.018,b.y-b.vy*0.018); ctx.stroke(); }
+  for(const b of E.bolts){ ctx.strokeStyle='rgba(150,230,255,'+(b.t/0.18)+')'; ctx.lineWidth=3; ctx.beginPath(); b.pts.forEach((p,k)=>{ if(!k){ ctx.moveTo(p.x,p.y); return; } const q=b.pts[k-1];
+      ctx.lineTo((p.x+q.x)/2+(Math.random()*16-8),(p.y+q.y)/2+(Math.random()*16-8)); ctx.lineTo(p.x,p.y); }); ctx.stroke(); }
+  ctx.setTransform(1,0,0,1,0,0);
+  if(E.hitT>0){ const g=ctx.createRadialGradient(cv.width/2,cv.height/2,Math.min(cv.width,cv.height)*0.3,cv.width/2,cv.height/2,Math.max(cv.width,cv.height)*0.7);
+    g.addColorStop(0,'rgba(200,30,20,0)'); g.addColorStop(1,'rgba(200,30,20,.35)'); ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height); } }
+function hudExpo(){ const E=expo; if(!E) return; const t=E.t, left=Math.max(0,EX_BOSS-t);
+  setText($('exTime'),t<EX_BOSS?'⏱ '+Math.floor(left/60)+':'+String(Math.floor(left%60)).padStart(2,'0')+' bis Boss':'💀 BOSS!');
+  setText($('exInfo'),'Lv '+E.lvl+' · 💀 '+E.kills);
+  $('exHp').style.width=Math.max(0,E.hp/E.maxHp*100)+'%'; $('exXp').style.width=Math.min(100,E.xp/E.need*100)+'%'; }
+
+// =====================================================================
 //  START
 // =====================================================================
 load();
@@ -2203,7 +2376,8 @@ let lt=performance.now();
 function frame(now){
   const dt=Math.min(0.05,(now-lt)/1000); lt=now;
   const paused=!$('intro').hidden||!$('endres').hidden||!$('news').hidden||!$('diff').hidden||!$('over').hidden||!$('welcome').hidden||!$('world').hidden;
-  try{ if(!paused) update(dt); render(now/1000); hud(dt); }catch(err){ console.error(err); }
+  try{ if(expo){ if(!paused&&!expo.choosing) updateExpo(dt); if(expo) drawExpo(now/1000); else render(now/1000); hudExpo(); }
+    else { if(!paused) update(dt); render(now/1000); hud(dt); } }catch(err){ console.error(err); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -2214,6 +2388,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.1c</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.2a</div>
 </body>
 </html>
