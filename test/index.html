@@ -271,6 +271,7 @@ const SAVE_KEY='letzter-aussenposten-test', OLD_KEY='letzter-aussenposten-v3';
 
 // ---------- Alle Waren ----------
 const GOODS={
+  dampf:{name:'Dampf',price:0}, strom:{name:'Strom',price:2600}, spule:{name:'Spule',price:9200}, energiezelle:{name:'Energiezelle',price:21000},
   rohoel:{name:'Rohöl',price:320}, benzin:{name:'Benzin',price:1150}, flasche:{name:'Flasche',price:0}, oelfass:{name:'Ölfass',price:0}, treibstoff:{name:'Treibstofffass',price:4400}, brandsatz:{name:'Brandsatz',price:9800},
   apfel:{name:'Apfel',price:5}, ei:{name:'Ei',price:10}, weizen:{name:'Weizen',price:0}, mehl:{name:'Mehl',price:26},
   brot:{name:'Brot',price:58}, milch:{name:'Milch',price:85}, kaese:{name:'Käse',price:190},
@@ -475,7 +476,7 @@ MAPDEFS.labor={
       <p>Wenn du alles erreicht hast, startest du das <b style="color:var(--bone)">Finale</b>: Endlos-Wellen bis die Mauer fällt. Danach beginnt eine neue Welt mit <b style="color:var(--bone)">Sternen</b> – jeder bringt dauerhaft +10 % Einnahmen.</p>`,
 };
 MAPDEFS.oel={
-    id:'oel', name:'Ölfeld', num:6, costMul:2.5, next:null, tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.12, zBurn:0.16, horde:1.3, leader:true, startMoney:1500, staff:'Kassierer',
+    id:'oel', name:'Ölfeld', num:6, costMul:2.5, next:'kraftwerk', tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.12, zBurn:0.16, horde:1.3, leader:true, startMoney:1500, staff:'Kassierer',
     staffDesc:'Sammelt das Geld an den Kassen automatisch ein.',
     theme:{work:'#46423a',workDot:['24,22,18','140,128,110'],path:'rgba(20,18,14,.5)',floor:'#3c3832'},
     sty:{
@@ -514,6 +515,47 @@ MAPDEFS.oel={
       <p>Nachts kommen <b style="color:var(--bone)">Brenner</b>: brennende Zombies, die an der Mauer explodieren und nahe Wachtürme kurz lahmlegen. Halte sie mit dem Ölgraben und dem Flammenwerfer-Turm auf Abstand (Menü → Ausrüstung → Spezial).</p>
       <p>Expeditionen vom Ölfeld führen in ein eigenes Gebiet mit Bohrtürmen und vielen Fässern. Dort gibt es auch die Ausrüstung <b style="color:var(--bone)">Brandsätze</b> für den Molotow.</p>`,
 };
+MAPDEFS.kraftwerk={
+    id:'kraftwerk', name:'Kraftwerk', num:7, costMul:3, next:null, tables:null, zRunner:0.15, zBrute:0.14, zSpit:0.12, zFunk:0.14, horde:1.4, leader:true, startMoney:3000, staff:'Kassierer',
+    staffDesc:'Sammelt das Geld an den Kassen automatisch ein.',
+    theme:{work:'#50545a',workDot:['30,32,36','150,160,170'],path:'rgba(90,180,230,.12)',floor:'#44484e'},
+    sty:{
+      imp_benzin: {name:'Lieferung Benzin', out:'benzin',      inp:[], imp:{map:'oel',type:'raffinerie'}, time:1.6, up:3000},
+      aggregat:   {name:'Notstromaggregat', out:'strom',       inp:['benzin'],                time:2.8, up:6000},
+      imp_kohle:  {name:'Lieferung Kohle',  out:'kohle',       inp:[], imp:{map:'mine',type:'kohle'}, time:1.4, up:600},
+      kesselhaus: {name:'Kesselhaus',       out:'dampf',       inp:['kohle'],                 time:2.0, up:1500},
+      turbine:    {name:'Turbine',          out:'strom',       inp:['dampf'],                 time:2.4, up:3500},
+      imp_draht:  {name:'Lieferung Draht',  out:'draht',       inp:[], imp:{map:'werkstatt',type:'draht'}, time:1.6, up:5000},
+      spule:      {name:'Spulenwickelei',   out:'spule',       inp:['draht','strom'],         time:3.2, up:12000},
+      imp_batterie:{name:'Lieferung Batterie',out:'batterie',  inp:[], imp:{map:'labor',type:'batterie'}, time:2.0, up:15000},
+      ladestation:{name:'Ladestation',      out:'energiezelle',inp:['batterie','strom'],      time:3.8, up:30000},
+    },
+    order:['imp_kohle','kesselhaus','turbine','imp_draht','spule','imp_batterie','ladestation','imp_benzin','aggregat'],
+    inst:[
+      {id:'kesselhaus1',type:'kesselhaus',c:1,r:2,cost:1500}, {id:'imp_kohle1',type:'imp_kohle',c:2,r:2,cost:0},
+      {id:'turbine1',type:'turbine',c:3,r:2,cost:3500},       {id:'imp_kohle2',type:'imp_kohle',c:4,r:2,cost:6000},
+      {id:'kesselhaus2',type:'kesselhaus',c:0,r:2,cost:12000},
+      {id:'imp_draht1',type:'imp_draht',c:1,r:1,cost:15000},   {id:'spule1',type:'spule',c:2,r:1,cost:25000},
+      {id:'turbine2',type:'turbine',c:3,r:1,cost:20000},       {id:'imp_benzin1',type:'imp_benzin',c:4,r:1,cost:30000},
+      {id:'aggregat1',type:'aggregat',c:0,r:1,cost:40000},
+      {id:'imp_batterie1',type:'imp_batterie',c:1,r:0,cost:60000},{id:'ladestation1',type:'ladestation',c:2,r:0,cost:120000},
+      {id:'spule2',type:'spule',c:3,r:0,cost:90000},           {id:'ladestation2',type:'ladestation',c:4,r:0,cost:240000},
+      {id:'aggregat2',type:'aggregat',c:0,r:0,cost:150000},
+    ],
+    sell:['strom','spule','energiezelle'],
+    crate:{strom:330,spule:735,energiezelle:800},
+    goals:[
+      {text:'Alle 9 Stationsarten bauen',    cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:9},
+      {text:'6 Arbeiter einstellen',          cur:()=>S.workers.filter(w=>!w.robot).length, max:6},
+      {text:'Alle Stationsarten auf Stufe 10',cur:()=>ORDER.filter(t=>typeBuilt(t)&&(S.lv[t]||1)>=10).length, max:9},
+      {text:'Insgesamt $50.000.000 verdienen',cur:()=>S.lifetime, max:50000000, money:true},
+      {text:'10 Nächte überstehen',            cur:()=>S.nights, max:10, nights:true},
+    ],
+    intro:`<p><b style="color:var(--bone)">Map 7 · Kraftwerk.</b> Kohle aus der Mine macht im Kesselhaus Dampf, die Turbine macht daraus <b style="color:var(--bone)">Strom</b>. Strom gibt es auch aus dem Notstromaggregat mit Benzin vom Ölfeld.</p>
+      <p>Draht + Strom ergibt eine <b style="color:var(--bone)">Spule</b>, Batterie + Strom eine <b style="color:var(--bone)">Energiezelle</b>, die wertvollste Ware im Spiel.</p>
+      <p>Nachts kommen <b style="color:var(--bone)">Funker</b>: Wenn sie sterben, legt ein Stromstoß nahe Wachtürme lahm. Manchmal fällt nachts der Strom aus. Tesla-Spule und Elektrozaun (Menü → Ausrüstung → Spezial) halten dagegen.</p>
+      <p>Expeditionen vom Kraftwerk führen in ein Umspannwerk. Dort gibt es auch die Ausrüstung <b style="color:var(--bone)">Spulen</b> für den Kugelblitz.</p>`,
+};
 // späte Maps: Bauen und Ausbauen teurer, damit der Ausbau länger trägt
 for(const md of Object.values(MAPDEFS)){ const m=md.costMul||1; if(m===1) continue;
   md.inst.forEach(i=>{ i.cost=Math.round(i.cost*m/50)*50; }); for(const k in md.sty) md.sty[k].up=Math.round(md.sty[k].up*m); }
@@ -523,6 +565,7 @@ const MAP_LIST=[
   {id:'werkstatt'},
   {id:'labor'},
   {id:'oel'},
+  {id:'kraftwerk'},
 ];
 const LANES=[{x:500,cost:0},{x:440,cost:250},{x:560,cost:1200}];
 const TURRETS=[
@@ -567,6 +610,8 @@ const SPEC={
         {id:'shield',name:'Energieschild',need:'batterie',    base:70000,desc:'Per Knopf: Mauer für einige Sekunden unverwundbar', active:true}],
   oel:[{id:'graben',name:'Ölgraben',      need:'raffinerie',  base:120000,desc:'Brennender Graben quer über das Feld: Zombies fangen Feuer'},
         {id:'flame',name:'Flammenwerfer-Turm',need:'brandsatz',base:160000,desc:'Kurze Reichweite, verbrennt ganze Gruppen am Tor'}],
+  kraftwerk:[{id:'tesla',name:'Tesla-Spule', need:'turbine',     base:300000,desc:'Kettenblitz: springt von Zombie zu Zombie'},
+        {id:'zaun', name:'Elektrozaun',   need:'spule',       base:400000,desc:'Zombies an der Mauer bekommen Stromschläge und werden kurz betäubt'}],
 };
 const specList=()=>(SPEC[MD.id]||[]).map(u=>Object.assign({mul:1.7,max:10},u));
 const sl=id=>(S.up&&S.up[id])||0;
@@ -740,7 +785,7 @@ let spawnT=1, zSpawnLeft=0, zSpawnT=0, repairing=false, mechWork=false;
 let wallAttackers=0;
 let endless=null, finaleArm=false; // läuft gerade die Endlos-Verteidigung?
 const ND=()=>endless?endless.eday:S.day, bossNow=()=>endless?(endless.wave>0&&endless.wave%5===0):isBossNight(S.day);
-let specT={oil:0,cata:0,gun:0,laser:0,flame:0}, flameA=null, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
+let specT={oil:0,cata:0,gun:0,laser:0,flame:0,tesla:0,zaun:0,over:0}, flameA=null, zaps=[], blackT=0, blackOut=0, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
 const MECH_POS=[{x:445,y:856},{x:555,y:856}];
 const spotOf=i=>({x:i.x,y:i.y+SPOT_DY});
 const lanePile=k=>({x:LANES[k].x,y:COUNTER.y0+12});
@@ -1184,7 +1229,8 @@ function update(dt){
 // =====================================================================
 function startNight(){
   S.phase='night'; S.phaseT=0; S.wallHp=wallMax();
-  specT={oil:1,cata:1,gun:0,laser:0,flame:0}; pots=[]; blastUsed=false; shieldT=0; shieldCd=0;
+  specT={oil:1,cata:1,gun:0,laser:0,flame:0,tesla:1,zaun:1,over:2}; pots=[]; zaps=[]; blastUsed=false; shieldT=0; shieldCd=0;
+  blackOut=0; blackT=(MD.id==='kraftwerk'&&Math.random()<0.6)?10+Math.random()*25:0;
   zSpawnLeft=zCount(S.day)+(isBossNight(S.day)?1:0); zSpawnT=1.5;
   mines=[]; for(let i=0;i<2*S.up.mine;i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
   if(isBossNight(S.day)) toast('Bossnacht! Ein riesiger Zombie kommt zum Schluss.',3400);
@@ -1196,7 +1242,8 @@ function endNight(win){
   if(win){ S.nights++; const bonus=Math.round(20*(1+0.5*(S.day-2))*MD.num); S.money+=bonus; S.lifetime+=bonus; toast('Nacht überstanden! Bonus +$'+fmt(bonus),3000); beep(520,.15,'square',.05,400);}
   save();
 }
-function killReward(z){ if(z.dead) return; z.dead=true; let r=Math.round(3*(1+0.3*(ND()-1))*MD.num*INC_BOOST);
+function killReward(z){ if(z.dead) return; z.dead=true;
+  if(z.funk){ for(const t of TURRETS){ if(TR[t.id]&&dist(t.x,t.y,z.x,z.y)<200) TR[t.id].stun=Math.max(TR[t.id].stun||0,3); } burst(z.x,z.y-16,'#8ae0ff',22); beep(1400,.15,'square',.04,-1000); } let r=Math.round(3*(1+0.3*(ND()-1))*MD.num*INC_BOOST);
   if(z.boss){ r=Math.round(150*(1+0.6*(ND()/5-1))*MD.num*INC_BOOST); S.bossWins++; toast('Boss besiegt! +$'+fmt(r),3000); burst(z.x,z.y-20,'#f2c14e',40); }
   S.money+=r; S.lifetime+=r; addFloat(z.x,z.y-24,'+$'+fmt(r),'#9fc45a'); burst(z.x,z.y,'#5c7a3a',12); }
 function shoot(x,y,range,dmg,from){
@@ -1245,10 +1292,25 @@ function updateSpecials(dt){
     if(c.length){ const t=c.reduce((a,b)=>dist(o.x,o.y,a.x,a.y)<dist(o.x,o.y,b.x,b.y)?a:b); flameA=Math.atan2(t.y-o.y,t.x-o.x);
       for(const z of c){ const a=Math.atan2(z.y-o.y,z.x-o.x); if(Math.abs(((a-flameA+Math.PI*3)%(Math.PI*2))-Math.PI)<0.5) hurt(z,ref*(0.28+0.12*l)*dt); }
       specT.flame-=dt; if(specT.flame<=0){ specT.flame=0.12; noise(.12,.03,700,0.5); } } }
+  // Tesla-Spule: Kettenblitz
+  if((l=sl('tesla'))>0){ specT.tesla-=dt; if(specT.tesla<=0){ const o=TESLA_O; let cur=zombies.filter(z=>!z.dead&&dist(o.x,o.y,z.x,z.y)<300).sort((a,b)=>dist(o.x,o.y,a.x,a.y)-dist(o.x,o.y,b.x,b.y))[0];
+    if(cur){ specT.tesla=Math.max(0.8,1.8-0.08*l); const hit=new Set(), pts=[{x:o.x,y:o.y-20}];
+      for(let k=0;k<3+l&&cur;k++){ hit.add(cur); pts.push({x:cur.x,y:cur.y-16}); hurt(cur,ref*(0.25+0.1*l)); let nx=null,nd=150; for(const z of zombies){ if(z.dead||hit.has(z)) continue; const d=dist(z.x,z.y,cur.x,cur.y); if(d<nd){nd=d;nx=z;} } cur=nx; }
+      zaps.push({pts,t:0.2}); beep(1200,.08,'square',.025,-800); } else specT.tesla=0.3; } }
+  // Elektrozaun: Stromschlag an der Mauer
+  if((l=sl('zaun'))>0){ specT.zaun-=dt; if(specT.zaun<=0){ specT.zaun=3; const w=zombies.filter(z=>!z.dead&&!z.spitter&&z.y<=y1+20);
+    if(w.length){ for(const z of w){ hurt(z,ref*(0.15+0.06*l)); z.stunT=0.6+0.05*l; } beep(900,.12,'sawtooth',.03,-400); for(const z of w.slice(0,6)) zaps.push({pts:[{x:z.x-10,y:y1+2},{x:z.x,y:z.y-14},{x:z.x+10,y:y1+2}],t:0.15}); } } }
+  // Taktik-Karte Überladung (Finale)
+  if(cb('over')){ specT.over-=dt; if(specT.over<=0){ specT.over=4; const c=zombies.filter(z=>!z.dead).sort(()=>Math.random()-0.5).slice(0,2*cb('over'));
+    for(const z of c){ hurt(z,ref*1.2); zaps.push({pts:[{x:z.x+Math.random()*30-15,y:z.y-260},{x:z.x+Math.random()*20-10,y:z.y-130},{x:z.x,y:z.y-14}],t:0.2}); } if(c.length) beep(1500,.12,'square',.04,-1200); } }
+  for(const zp of zaps) zp.t-=dt; zaps=zaps.filter(zp=>zp.t>0);
+  // Stromausfall im Kraftwerk
+  if(blackT>0&&!endless){ blackT-=dt; if(blackT<=0){ blackOut=5; for(const k in TR) TR[k].stun=Math.max(TR[k].stun||0,5); toast('⚡ Stromausfall! Die Wachtürme sind 5 s lahm.',2400); beep(80,.6,'sawtooth',.06,-30); } }
+  if(blackOut>0) blackOut-=dt;
   // Taktik-Karte Flammenwand (Finale)
   if(cb('fwall')){ for(const z of zombies) if(!z.dead&&z.y<y1+60) hurt(z,ref*0.12*cb('fwall')*dt); }
 }
-const GRABEN_DY=125, FLAME_O={x:GATE_X,y:COMP.y1+6};
+const GRABEN_DY=125, FLAME_O={x:GATE_X,y:COMP.y1+6}, TESLA_O={x:GATE_X+GATE_HALF+40,y:COMP.y1-10};
 function skillInfo(){ if(S.phase!=='night') return null;
   if(sl('blast')>0) return {id:'blast',ready:!blastUsed,text:blastUsed?'💥 Sprengladung leer':'💥 Sprengen'};
   if(sl('shield')>0) return {id:'shield',ready:shieldCd<=0,text:shieldT>0?'🛡️ Schild aktiv '+Math.ceil(shieldT)+'s':shieldCd>0?'🛡️ Schild '+Math.ceil(shieldCd)+'s':'🛡️ Schild'};
@@ -1269,6 +1331,7 @@ const CARDS=[
   {id:'cash', name:'Kriegskasse',    desc:'', once:true},
   {id:'shcd', name:'Kondensator',    desc:'Schild lädt 25 % schneller', ok:()=>sl('shield')>0},
   {id:'boom', name:'Sprengmeister',  desc:'Sprengladung +50 % Schaden', ok:()=>sl('blast')>0},
+  {id:'over', name:'Überladung',     desc:'Alle 4 s schlagen Blitze in 2 Zombies ein (Kraftwerk)', ok:()=>!!G.maps.kraftwerk},
   {id:'fwall',name:'Flammenwand',    desc:'Feuer vor der Mauer verbrennt Zombies (Ölfeld)', ok:()=>!!G.maps.oel},
 ];
 const cb=id=>(endless&&endless.cards&&endless.cards[id])||0;
@@ -1320,7 +1383,7 @@ function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*
   zSpawnLeft=Math.round(zCount(ND())*modCnt())+(bossNow()?1:0); zSpawnT=1; mines=[];
   if(endless.offer){ const ids=endless.offer; takeCard(ids[Math.floor(Math.random()*ids.length)],true); }
   for(let i=0;i<2*S.up.mine+4*cb('mine');i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
-  blastUsed=false; specT={oil:1,cata:1,gun:0,laser:0,flame:0};
+  blastUsed=false; specT={oil:1,cata:1,gun:0,laser:0,flame:0,tesla:1,zaun:1,over:2};
   const mi=curMod()&&modInfo(curMod()); toast((bossNow()?'Bosswelle ':'Welle ')+endless.wave+(mi?': '+mi.icon+' '+mi.name:'')+'!',1800); beep(180,.4,'sawtooth',.05,-80); }
 function waveCleared(){ const w=endless.wave, e=endG(), d=G.diff||'easy';
   const bonus=Math.round(400*w*MD.num*(endless.mod==='blood'?2:1)*INC_BOOST); S.money+=bonus; S.lifetime+=bonus;
@@ -1370,10 +1433,10 @@ function updateNight(dt){
    for(let gi=0;gi<grp&&zSpawnLeft>0;gi++){ zSpawnLeft--;
     const sm=DF().spec, wm=curMod(); let zr=(MD.zRunner||0)*sm, zb=(MD.zBrute||0)*sm, zs=(MD.zSpit||0)*sm;
     if(wm==='runner') zr=Math.max(zr,0.5); if(wm==='giant') zb=Math.max(zb,0.45); if(wm==='spit') zs+=0.3;
-    const boss=bossNow()&&zSpawnLeft===0, roll=Math.random(), runner=!boss&&roll<zr, brute=!boss&&!runner&&roll<zr+zb, spitter=!boss&&!runner&&!brute&&roll<zr+zb+zs, burner=!boss&&!runner&&!brute&&!spitter&&Math.random()<(MD.zBurn||0)*sm;
+    const boss=bossNow()&&zSpawnLeft===0, roll=Math.random(), runner=!boss&&roll<zr, brute=!boss&&!runner&&roll<zr+zb, spitter=!boss&&!runner&&!brute&&roll<zr+zb+zs, burner=!boss&&!runner&&!brute&&!spitter&&Math.random()<(MD.zBurn||0)*sm, funk=!boss&&!runner&&!brute&&!spitter&&!burner&&Math.random()<(MD.zFunk||0)*sm;
     const x=boss?GATE_X+(Math.random()*120-60):150+Math.random()*700, hp=zHp(ND())*(boss?20:runner?0.5:brute?3:spitter?1.2:1)*(1+0.25*(MD.num-1))*(boss?1:modHp());
     const sp=boss?18:Math.min(38,19+Math.random()*8+ND()*0.35)*(runner?1.9:brute?0.6:burner?1.35:1);
-    zombies.push({x,y:H+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,x+(GATE_X-x)*0.35)),hp,max:hp,boss,leader:boss&&!!MD.leader,sumT:0,runner,brute,spitter,burner,spitT:Math.random()*2,sp,walk:Math.random()*6,face:-Math.PI/2,atk:0});
+    zombies.push({x,y:H+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,x+(GATE_X-x)*0.35)),hp,max:hp,boss,leader:boss&&!!MD.leader,sumT:0,runner,brute,spitter,burner,funk,spitT:Math.random()*2,sp,walk:Math.random()*6,face:-Math.PI/2,atk:0});
     if(boss){ toast(MD.leader?'Der Anführer ist da! Er ruft Verstärkung.':'Der Boss ist da!',2200); beep(80,.8,'sawtooth',.07,-30); } } }
   for(const mn of mines){ if(mn.boom) continue;
     if(zombies.some(z=>!z.dead&&dist(z.x,z.y,mn.x,mn.y)<18)){ mn.boom=true; const dmg=60*Math.pow(1.3,S.up.mine-1);
@@ -1400,7 +1463,7 @@ function updateNight(dt){
     if(z.y>COMP.y1+16) moveTo(z,z.tx,COMP.y1+16,z.sp*(inWire?wireSlow():1)*specSlow(z),dt);
     else if(z.burner){ z.dead=true; if(!(shieldT>0)) S.wallHp-=zWallDmg(ND())*20; burst(z.x,z.y-10,'#ff9a3a',30); burst(z.x,z.y-10,'#3a3a36',14); beep(70,.4,'sawtooth',.07,-40);
       for(const k in TR){ const t=TURRETS.find(q=>q.id===k); if(t&&dist(t.x,t.y,z.x,z.y)<160) TR[k].stun=Math.max(TR[k].stun||0,2); } continue; }
-    else { z.atk+=dt; if(!(shieldT>0)) S.wallHp-=zWallDmg(ND())*(z.boss?4:z.brute?3:1)*dt; z.walk+=dt*4; if(z.atk>0.8){z.atk=0; if(Math.random()<.3)beep(90,.08,'sawtooth',.03);} }
+    else { z.atk+=dt; if(z.stunT>0){ z.stunT-=dt; continue; } if(!(shieldT>0)) S.wallHp-=zWallDmg(ND())*(z.boss?4:z.brute?3:1)*dt; z.walk+=dt*4; if(z.atk>0.8){z.atk=0; if(Math.random()<.3)beep(90,.08,'sawtooth',.03);} }
   }
   for(const gb of globs){ gb.t+=dt; if(gb.t>=gb.dur&&!gb.hit){ gb.hit=true; burst(gb.x1,gb.y1,'#8ac43a',12);
       if(gb.tur){ TR[gb.tur].stun=Math.max(1,4*(1-0.1*S.up.light)); } else if(!(shieldT>0)) S.wallHp-=12; } }
@@ -1622,6 +1685,7 @@ const ACH=[
   {id:'ammo',    name:'Voll geladen',       desc:'Fülle das Munitionsdepot ganz.',                 test:()=>G.ammo>=AMMO_CAP},
   {id:'werkstatt',name:'Mechaniker',        desc:'Erreiche die Werkstatt.',                        test:()=>!!G.maps.werkstatt},
   {id:'labor',   name:'Ingenieur',          desc:'Erreiche das Robotik-Labor.',                    test:()=>!!G.maps.labor},
+  {id:'kraftwerk',name:'Hochspannung',      desc:'Erreiche das Kraftwerk.',                        test:()=>!!G.maps.kraftwerk},
   {id:'oel',     name:'Ölbaron',            desc:'Erreiche das Ölfeld.',                           test:()=>!!G.maps.oel},
   {id:'robot',   name:'Blechkollege',       desc:'Setze einen Roboter-Helfer ein.',                test:()=>false},
   {id:'million', name:'Millionär',          desc:'Verdiene insgesamt $1.000.000 (alle Maps).',    test:()=>totalLife()>=1e6},
@@ -1850,6 +1914,10 @@ function drawGood(g,x,y,s=1){
     case 'oelfass': ctx.fillStyle='#5a6470';rr(-6,-7,12,15,2);ctx.fill();ctx.fillStyle='#3a4048';ctx.fillRect(-6,-3,12,2);ctx.fillRect(-6,3,12,2);break;
     case 'treibstoff': ctx.fillStyle='#2a5a8a';rr(-6,-7,12,15,2);ctx.fill();ctx.fillStyle='#f2c14e';ctx.fillRect(-6,-3,12,2);ctx.fillRect(-6,3,12,2);ctx.fillStyle='#1a1814';ctx.beginPath();ctx.arc(0,0,1.8,0,7);ctx.fill();break;
     case 'brandsatz': ctx.fillStyle='rgba(150,210,190,.85)';rr(-4,-2,8,10,2);ctx.fill();ctx.fillRect(-1.5,-6,3,5);ctx.fillStyle='#c0302a';ctx.fillRect(-4,2,8,4);ctx.fillStyle='#e8dcc0';ctx.fillRect(-1,-9,2,4);ctx.fillStyle='#ffb040';ctx.beginPath();ctx.arc(0,-10,2.4,0,7);ctx.fill();break;
+    case 'dampf': ctx.fillStyle='rgba(230,230,235,.9)';for(const [a,b,r] of [[-4,1,5],[3,0,5.5],[0,-4,4.5]]){ctx.beginPath();ctx.arc(a,b,r,0,7);ctx.fill();}break;
+    case 'strom': ctx.fillStyle='#2a3a4a';rr(-7,-8,14,16,3);ctx.fill();ctx.fillStyle='#f2d040';ctx.beginPath();ctx.moveTo(1,-7);ctx.lineTo(-4,1);ctx.lineTo(0,1);ctx.lineTo(-1,7);ctx.lineTo(4,-1);ctx.lineTo(0,-1);ctx.closePath();ctx.fill();break;
+    case 'spule': ctx.fillStyle='#4a4a44';ctx.fillRect(-7,-7,14,3);ctx.fillRect(-7,4,14,3);ctx.fillStyle='#c8743a';rr(-5,-4,10,8,1);ctx.fill();ctx.strokeStyle='#e0a060';ctx.lineWidth=1;for(let k=-3;k<=3;k+=2){ctx.beginPath();ctx.moveTo(k,-4);ctx.lineTo(k,4);ctx.stroke();}break;
+    case 'energiezelle': ctx.fillStyle='#2a3e44';rr(-5,-8,10,16,3);ctx.fill();ctx.fillStyle='#5ae0f0';rr(-3,-5,6,10,2);ctx.fill();ctx.fillStyle='rgba(200,250,255,.8)';ctx.fillRect(-1,-4,2,8);ctx.fillStyle='#c0c8d0';ctx.fillRect(-2,-10,4,2);break;
     case 'munition': for(const d of [-5,0,5]){ctx.fillStyle='#c99a2a';rr(d-2,-2,4,9,1);ctx.fill();ctx.fillStyle='#b87a3a';ctx.beginPath();ctx.moveTo(d-2,-2);ctx.lineTo(d,-7);ctx.lineTo(d+2,-2);ctx.closePath();ctx.fill();}break;
   }
   ctx.restore();
@@ -1878,7 +1946,7 @@ function zombie(z){
   const bob=Math.sin(z.walk)*1.8;
   shadow(z.x,z.y+2,11,4);
   ctx.fillStyle='#2b2a20'; ctx.fillRect(z.x-5,z.y-6,4,7); ctx.fillRect(z.x+1,z.y-6,4,7);
-  ctx.fillStyle=z.hit?'#fff':z.burner?'#a0401a':z.runner?'#7a3a2a':z.brute?'#3a3a4a':z.spitter?'#5a3a6a':'#5a5a44'; rr(z.x-8,z.y-20+bob,16,15,4); ctx.fill();
+  ctx.fillStyle=z.hit?'#fff':z.funk?'#3a4a6a':z.burner?'#a0401a':z.runner?'#7a3a2a':z.brute?'#3a3a4a':z.spitter?'#5a3a6a':'#5a5a44'; rr(z.x-8,z.y-20+bob,16,15,4); ctx.fill();
   ctx.fillStyle='#3e3e2e'; ctx.fillRect(z.x-8,z.y-12+bob,6,4);
   ctx.strokeStyle=z.hit?'#fff':'#7f9a5a'; ctx.lineWidth=3.5; ctx.lineCap='round';
   const reach=z.y<=COMP.y1+17?Math.sin(z.atk*8)*3:0;
@@ -1886,6 +1954,7 @@ function zombie(z){
   ctx.fillStyle=z.hit?'#fff':z.runner?'#a8b862':z.brute?'#6a8a5a':z.spitter?'#9ac43a':'#8aa862'; ctx.beginPath(); ctx.arc(z.x,z.y-26+bob,7,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='#d24a2a'; ctx.fillRect(z.x-3.5,z.y-28+bob,2.2,2.2); ctx.fillRect(z.x+1.5,z.y-28+bob,2.2,2.2);
   if(z.boss){ctx.fillStyle=z.leader?'#b04ae0':'#8a2a1a';ctx.fillRect(z.x-9,z.y-36,18,3); if(z.leader){ctx.fillStyle='#f2c14e';ctx.beginPath();ctx.moveTo(z.x-6,z.y-37);ctx.lineTo(z.x-4,z.y-42);ctx.lineTo(z.x,z.y-38);ctx.lineTo(z.x+4,z.y-42);ctx.lineTo(z.x+6,z.y-37);ctx.fill();}}
+  if(z.funk){ ctx.strokeStyle='#9aa4ae'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(z.x+4,z.y-32+bob); ctx.lineTo(z.x+7,z.y-44+bob); ctx.stroke(); ctx.fillStyle=Math.sin(performance.now()/80)>0?'#8ae0ff':'#2a5a8a'; ctx.beginPath(); ctx.arc(z.x+7,z.y-45+bob,2.2,0,7); ctx.fill(); }
   if(z.burner){ const tm=performance.now()/90; for(let k=0;k<3;k++){ const fx=z.x-5+k*5, fh=6+Math.sin(tm+k*2)*3; ctx.fillStyle=k===1?'#ffd040':'#ff7a2a'; ctx.beginPath(); ctx.moveTo(fx-3,z.y-31+bob); ctx.quadraticCurveTo(fx,z.y-31+bob-fh*2,fx+3,z.y-31+bob); ctx.fill(); } }
   if(z.hp<z.max||z.boss){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(z.x-12,z.y-42,24,4);ctx.fillStyle='#e0503a';ctx.fillRect(z.x-12,z.y-42,24*Math.max(0,z.hp/z.max),4);}
 }
@@ -1981,7 +2050,7 @@ function drawStation(i,time){
       if(act){ctx.fillStyle='rgba(255,255,255,.35)';for(const d of [-8,6]){ctx.beginPath();ctx.arc(x+d,y-14-(time*18+d)%16,5,0,7);ctx.fill();}}
       ctx.strokeStyle='#3a2a18'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(x+10,y-4); ctx.lineTo(x+20+(act?Math.sin(time*6)*4:0),y-28); ctx.stroke();
       break; }
-    case 'imp_mehl': case 'imp_ei': case 'imp_brot': case 'imp_kaese': case 'imp_eisen': case 'imp_werkzeug': case 'imp_kupfer': case 'imp_motor': {
+    case 'imp_mehl': case 'imp_ei': case 'imp_brot': case 'imp_kaese': case 'imp_eisen': case 'imp_werkzeug': case 'imp_kupfer': case 'imp_motor': case 'imp_kohle': case 'imp_draht': case 'imp_batterie': case 'imp_benzin': {
       ctx.fillStyle='#6a4a2a'; rr(x-38,y+10,76,16,3); ctx.fill();
       for(const [dx,dy,w,h] of [[-32,-14,30,26],[2,-14,30,26],[-16,-36,30,24]]){ ctx.fillStyle='#a07a48'; rr(x+dx,y+dy,w,h,2); ctx.fill();
         ctx.strokeStyle='#6a4a2a'; ctx.lineWidth=1.5; ctx.strokeRect(x+dx+1,y+dy+1,w-2,h-2); ctx.beginPath(); ctx.moveTo(x+dx,y+dy); ctx.lineTo(x+dx+w,y+dy+h); ctx.stroke(); }
@@ -2024,6 +2093,17 @@ function drawStation(i,time){
       const hx=x-34*Math.cos(a)+10*Math.sin(a), hy=y-24-34*Math.sin(a); ctx.strokeStyle='#1d1d18'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(hx,hy+8); ctx.lineTo(x-34,y+12); ctx.stroke();
       ctx.fillStyle='#1a1814'; ctx.beginPath(); ctx.ellipse(x-34,y+14,7,3,0,0,7); ctx.fill();
       break; }
+    case 'turbine': { // Turbinenhalle mit Rad
+      ctx.fillStyle='#5a6068'; rr(x-36,y-20,72,44,6); ctx.fill(); ctx.fillStyle='#3a3e44'; ctx.beginPath(); ctx.arc(x-6,y+2,18,0,7); ctx.fill();
+      ctx.save(); ctx.translate(x-6,y+2); ctx.rotate(act?time*8:0); ctx.fillStyle='#9aa4ae'; for(let k=0;k<6;k++){ ctx.rotate(Math.PI/3); ctx.fillRect(-2,-16,4,14); } ctx.restore();
+      ctx.fillStyle='#c0c8d0'; ctx.beginPath(); ctx.arc(x-6,y+2,4,0,7); ctx.fill();
+      ctx.strokeStyle=act?'#8ae0ff':'#4a5a6a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x+18,y-22); ctx.lineTo(x+24,y-32); ctx.lineTo(x+20,y-32); ctx.lineTo(x+28,y-44); ctx.stroke();
+      drawGood(st.out,x+24,y+10,1.1); break; }
+    case 'kesselhaus': { // Kühlturm
+      ctx.fillStyle='#8a8a84'; ctx.beginPath(); ctx.moveTo(x-30,y+24); ctx.quadraticCurveTo(x-14,y-4,x-24,y-30); ctx.lineTo(x+24,y-30); ctx.quadraticCurveTo(x+14,y-4,x+30,y+24); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#6a6a64'; ctx.beginPath(); ctx.ellipse(x,y-30,24,6,0,0,7); ctx.fill(); ctx.fillStyle='rgba(0,0,0,.12)'; ctx.fillRect(x-26,y+8,52,4);
+      if(act) for(let k=0;k<3;k++){ const t2=(time*0.8+k/3)%1; ctx.fillStyle=`rgba(230,230,235,${0.6*(1-t2)})`; ctx.beginPath(); ctx.arc(x+Math.sin(k*2+time)*6,y-34-t2*30,8+t2*10,0,7); ctx.fill(); }
+      break; }
     case 'raffinerie': { // Tanks und Turm
       ctx.fillStyle='#8a8a80'; rr(x-36,y-12,28,34,6); ctx.fill(); ctx.fillStyle='#a8a89c'; ctx.beginPath(); ctx.ellipse(x-22,y-12,14,5,0,0,7); ctx.fill();
       ctx.fillStyle='#7a7a70'; rr(x+8,y-4,28,26,6); ctx.fill(); ctx.fillStyle='#9a9a8e'; ctx.beginPath(); ctx.ellipse(x+22,y-4,14,5,0,0,7); ctx.fill();
@@ -2032,8 +2112,8 @@ function drawStation(i,time){
       drawGood(st.out,x+22,y+12,1.1);
       break; }
     default: { // Backstube, Brotzeitbrett, Käserei, Werkstätten
-      const roof={kaese:'#d9a832',backstube:'#b85a6a',brett:'#6a8a3a',presse:'#5a6470',werkbank:'#8a5a2a',pulvermuehle:'#3a3a36',munpresse:'#6a5a2a',zahnrad:'#5a6470',draht:'#a0582a',motorbau:'#4a5a6a',moped:'#c9642f',silizium:'#4a5a7a',schaltkreis:'#2a6a3a',batterie:'#3a3e44',roboter:'#5ae0f0',glas:'#6aa0b0',fass:'#5a6470',abfuell:'#a07a2a',brandsatz:'#c0402a'}[t]||'#8a6a4a';
-      if(['presse','munpresse','zahnrad','draht','silizium','batterie','fass'].includes(t)){ ctx.fillStyle='#6a7078'; rr(x-30,y-22,60,46,4); ctx.fill(); ctx.fillStyle=roof; rr(x-34,y-30,68,14,4); ctx.fill();
+      const roof={kaese:'#d9a832',backstube:'#b85a6a',brett:'#6a8a3a',presse:'#5a6470',werkbank:'#8a5a2a',pulvermuehle:'#3a3a36',munpresse:'#6a5a2a',zahnrad:'#5a6470',draht:'#a0582a',motorbau:'#4a5a6a',moped:'#c9642f',silizium:'#4a5a7a',schaltkreis:'#2a6a3a',batterie:'#3a3e44',roboter:'#5ae0f0',glas:'#6aa0b0',fass:'#5a6470',abfuell:'#a07a2a',brandsatz:'#c0402a',spule:'#b8642a',ladestation:'#3a8a4a',aggregat:'#8a3a2a'}[t]||'#8a6a4a';
+      if(['presse','munpresse','zahnrad','draht','silizium','batterie','fass','spule'].includes(t)){ ctx.fillStyle='#6a7078'; rr(x-30,y-22,60,46,4); ctx.fill(); ctx.fillStyle=roof; rr(x-34,y-30,68,14,4); ctx.fill();
         const py=act?Math.abs(Math.sin(time*8))*10:0; ctx.fillStyle='#3a3e44'; ctx.fillRect(x-6,y-16,12,8+py); ctx.fillStyle='#9aa0a8'; ctx.fillRect(x-14,y-8+py,28,5);
         drawGood(st.out,x,y+14,1.3); break; }
       ctx.fillStyle='#d8cfb8'; rr(x-34,y-24,68,48,5); ctx.fill();
@@ -2163,6 +2243,9 @@ function drawSpecials(){
     if(S.phase==='night') for(let x=120;x<890;x+=22){ const h=7+Math.sin(tm*9+x)*4; ctx.fillStyle=(x/22)%2<1?'#ff8a2a':'#ffc040'; ctx.beginPath(); ctx.moveTo(x-5,gy); ctx.quadraticCurveTo(x,gy-h*2,x+5,gy); ctx.fill(); } }
   if(sl('flame')){ const o=FLAME_O; ctx.fillStyle='#5a4a3a'; rr(o.x-10,o.y-8,20,14,3); ctx.fill(); ctx.fillStyle='#c0402a'; ctx.fillRect(o.x-3,o.y+2,6,10);
     if(flameA!=null){ for(let k=0;k<14;k++){ const d=20+Math.random()*170, a=flameA+(Math.random()-0.5)*0.8*(d/190); ctx.fillStyle=`rgba(255,${120+Math.random()*120|0},40,${0.55-d/400})`; ctx.beginPath(); ctx.arc(o.x+Math.cos(a)*d,o.y+Math.sin(a)*d,4+d/18,0,7); ctx.fill(); } } }
+  if(sl('tesla')){ const o=TESLA_O; ctx.fillStyle='#3a3e44'; ctx.fillRect(o.x-6,o.y-6,12,16); ctx.fillStyle='#b8642a'; for(let k=0;k<4;k++) ctx.fillRect(o.x-5,o.y-6-k*5,10,3); ctx.fillStyle='#c0c8d0'; ctx.beginPath(); ctx.arc(o.x,o.y-26,6,0,7); ctx.fill(); }
+  if(sl('zaun')){ ctx.strokeStyle='rgba(138,224,255,.6)'; ctx.lineWidth=1.5; for(const yy of [y1+6,y1+12]){ ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke(); } ctx.fillStyle='#5a6068'; for(let x=x0;x<=x1;x+=60) ctx.fillRect(x-2,y1+2,4,14); }
+  for(const zp of zaps){ ctx.strokeStyle=`rgba(150,230,255,${Math.min(1,zp.t/0.15)})`; ctx.lineWidth=3; ctx.beginPath(); zp.pts.forEach((pt,k)=>{ if(!k){ ctx.moveTo(pt.x,pt.y); return; } const q=zp.pts[k-1]; ctx.lineTo((pt.x+q.x)/2+(Math.random()*14-7),(pt.y+q.y)/2+(Math.random()*14-7)); ctx.lineTo(pt.x,pt.y); }); ctx.stroke(); }
   if(endless&&cb('fwall')){ for(let x=x0+10;x<x1;x+=26){ const h=6+Math.sin(tm*8+x)*3; ctx.fillStyle='rgba(255,140,40,.8)'; ctx.beginPath(); ctx.moveTo(x-5,y1+30); ctx.quadraticCurveTo(x,y1+30-h*2,x+5,y1+30); ctx.fill(); } }
 }
 function drawArrow(x,y,time){
@@ -2332,6 +2415,7 @@ const EXGEAR=[
   {id:'ammo',   map:'mine',      name:'⛏️ Munition',        max:4, base:8000,  desc:l=>'Jetzt: '+AMMO_T[l]+(l<4?' → nächste Stufe: '+AMMO_T[l+1]+(['',' (+30 % Schaden)',' (+60 % Schaden)',' (trifft 2 Zombies)',' (Explosion beim Treffer)'][l+1]):' – höchste Stufe')},
   {id:'bench',  map:'werkstatt', name:'🔧 Werkbank',        max:3, base:25000, desc:l=>['Du startest mit Kreissäge Stufe 1','Du startest zusätzlich mit Drohne Stufe 1','Kreissäge und Drohne starten auf Stufe 2','Kreissäge und Drohne starten auf Stufe 2'][l]+(l?' (aktiv: '+['','Säge 1','Säge 1 + Drohne 1','Säge 2 + Drohne 2'][l]+')':'')},
   {id:'brand',  map:'oel',       name:'🔥 Brandsätze',      max:4, base:120000,desc:l=>['Du startest mit Molotow Stufe 1','Feuerflächen 30 % größer','Du startest mit Molotow Stufe 2','Feuer brennt 50 % länger','Feuer brennt 50 % länger'][l]+(l?' (aktiv: Stufe '+l+')':'')},
+  {id:'spulen', map:'kraftwerk', name:'⚡ Spulen',          max:4, base:300000,desc:l=>['Du startest mit Kugelblitz Stufe 1','Kugelblitz springt 2-mal weiter','Du startest mit Kugelblitz Stufe 2','Getroffene Zombies werden kurz betäubt','Getroffene Zombies werden kurz betäubt'][l]+(l?' (aktiv: Stufe '+l+')':'')},
   {id:'robo',   map:'labor',     name:'🤖 Begleitroboter',  max:3, base:50000, desc:l=>'Ein Roboter läuft mit und schießt Laser'+(l?' (Stufe '+l+')':'')},
 ];
 const gl=id=>(G.exGear&&G.exGear[id])||0;
@@ -2339,10 +2423,10 @@ const gearCost=g=>Math.round(g.base*Math.pow(2.5,gl(g.id)));
 let expo=null;
 const exSk=id=>(expo&&expo.sk[id])||0;
 const canExpo=()=>S.phase==='day'&&!endless&&Object.keys(G.maps).length>=2;
-function exGenWorld(E){ E.area=G.cur==='oel'?'oel':'wild'; const oil=E.area==='oel'; const ob=[], free=(x,y,r)=>Math.hypot(x-EX_W/2,y-EX_H/2)>r+220&&ob.every(o=>Math.hypot(o.x-x,o.y-y)>o.r+r+40);
+function exGenWorld(E){ E.area=G.cur==='oel'?'oel':G.cur==='kraftwerk'?'kraft':'wild'; const oil=E.area==='oel', kr=E.area==='kraft'; const ob=[], free=(x,y,r)=>Math.hypot(x-EX_W/2,y-EX_H/2)>r+220&&ob.every(o=>Math.hypot(o.x-x,o.y-y)>o.r+r+40);
   const add=(n,mk)=>{ for(let k=0,tries=0;k<n&&tries<n*30;tries++){ const o=mk(); o.x=60+Math.random()*(EX_W-120); o.y=60+Math.random()*(EX_H-120); if(free(o.x,o.y,o.r)){ ob.push(o); k++; } } };
   add(34,()=>({t:'rock',r:20+Math.random()*22,a:Math.random()*3}));
-  add(30,()=>({t:oil?'derrick':'tree',r:oil?28:26+Math.random()*16}));
+  add(30,()=>({t:oil?'derrick':kr?'trafo':'tree',r:oil?28:kr?26:26+Math.random()*16}));
   add(16,()=>({t:'wreck',r:30,a:Math.random()*Math.PI}));
   E.obst=ob; E.barrels=[]; E.crates=[];
   const place=(arr,n,mk)=>{ for(let k=0,tries=0;k<n&&tries<n*30;tries++){ const o=mk(); o.x=60+Math.random()*(EX_W-120); o.y=60+Math.random()*(EX_H-120); if(free(o.x,o.y,16)&&arr.every(b=>Math.hypot(b.x-o.x,b.y-o.y)>60)){ arr.push(o); k++; } } };
@@ -2353,7 +2437,7 @@ function startExpo(){ if(!canExpo()||anyModal()) return; initAudio();
   expo={t:0,real:0,hp:mh,maxHp:mh,lvl:1,xp:0,need:5,kills:0,sk:{},z:[],gems:[],bul:[],fires:[],bolts:[],booms:[],beams:[],items:[],spawnAcc:0,shotT:0,moloT:2,boltT:2,droneT:0.5,roboT:1,crateT:20,
     boss:null,bossDone:false,pendingUp:0,choosing:false,hitT:0,inv:0,P:{x:EX_W/2,y:EX_H/2,walk:0,face:0},drone:{x:EX_W/2+30,y:EX_H/2-30,walk:0},robo:{x:EX_W/2-40,y:EX_H/2+20,walk:0}};
   if(b>=1) expo.sk.saw=b>=3?2:1; if(b>=2) expo.sk.drone=b>=3?2:1;
-  { const br=gl('brand'); if(br>=1) expo.sk.molo=br>=3?2:1; }
+  { const br=gl('brand'); if(br>=1) expo.sk.molo=br>=3?2:1; const sp=gl('spulen'); if(sp>=1) expo.sk.bolt=sp>=3?2:1; }
   exGenWorld(expo);
   document.body.classList.add('expoOn'); $('expoHud').hidden=false; save();
   toast('Expedition! Überlebe 5 Minuten, dann kommt der Boss.',3000); beep(300,.3,'sawtooth',.05,200); }
@@ -2400,6 +2484,7 @@ function updateExpo(dt){ const E=expo, P2=E.P; E.t+=dt; E.real+=dt; if(E.hitT>0)
   const grid=new Map(), CS=40; for(const z of E.z){ const k=((z.x/CS)|0)*1000+((z.y/CS)|0); let a=grid.get(k); if(!a){a=[];grid.set(k,a);} a.push(z); }
   for(const z of E.z){ if(z.hit) z.hit=Math.max(0,z.hit-dt); if(z.sawCd>0) z.sawCd-=dt;
     const dx=P2.x-z.x, dy=P2.y-z.y, d=Math.hypot(dx,dy)||1, reach=z.boss?38:z.brute?26:20, rad=z.boss?30:z.brute?18:12;
+    if(z.stunT>0){ z.stunT-=dt; continue; }
     if(d>reach){ z.x+=dx/d*z.sp*dt; z.y+=dy/d*z.sp*dt; z.walk+=dt*4;
       const ob=exPush(z,rad); if(ob){ const nx=z.x-ob.x, ny=z.y-ob.y, nd=Math.hypot(nx,ny)||1; let tx=-ny/nd, ty=nx/nd; if(tx*dx+ty*dy<0){ tx=-tx; ty=-ty; } z.x+=tx*z.sp*dt; z.y+=ty*z.sp*dt; } }
     else if(z.burner){ z.dead=true; exExplode(z.x,z.y,70,exHp(E.t)*2,true); }
@@ -2442,7 +2527,7 @@ function updateExpo(dt){ const E=expo, P2=E.P; E.t+=dt; E.real+=dt; if(E.hitT>0)
   // Kugelblitz
   { const l=exSk('bolt'); if(l){ E.boltT-=dt; if(E.boltT<=0){ E.boltT=2.6-0.25*l; let cur=exNearest(P2.x,P2.y,320);
       if(cur){ const hit=new Set(), pts=[{x:P2.x,y:P2.y-20}];
-        for(let k=0;k<3+l&&cur;k++){ hit.add(cur); pts.push({x:cur.x,y:cur.y-16}); exHurt(cur,16+7*l);
+        for(let k=0;k<3+l+(gl('spulen')>=2?2:0)&&cur;k++){ hit.add(cur); pts.push({x:cur.x,y:cur.y-16}); exHurt(cur,16+7*l); if(gl('spulen')>=4) cur.stunT=0.6;
           let nx=null, nd=150; for(const z of E.z){ if(z.dead||hit.has(z)) continue; const d=Math.hypot(z.x-cur.x,z.y-cur.y); if(d<nd){ nd=d; nx=z; } } cur=nx; }
         E.bolts.push({pts,t:0.18}); beep(1200,.1,'square',.025,-800); } } } }
   for(const b of E.bolts) b.t-=dt; E.bolts=E.bolts.filter(b=>b.t>0);
@@ -2498,6 +2583,9 @@ function finishExpo(win,quit){ const E=expo; if(!E) return;
   $('eShare').hidden=true; $('eShareTxt').hidden=true; $('eOk').textContent='Zurück zur Basis'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; $('eShare').hidden=false; };
   $('endres').hidden=false; beep(win?660:120,.6,win?'triangle':'sawtooth',.05,win?330:-60); }
 function exDrawObst(o){ const x=o.x, y=o.y, r=o.r;
+  if(o.t==='trafo'){ shadow(x,y+8,28,9); ctx.fillStyle='#6a7078'; rr(x-24,y-30,48,38,4); ctx.fill(); ctx.fillStyle='#4a5058'; for(let k=-18;k<=18;k+=6) ctx.fillRect(x+k-1,y-28,2,34);
+    ctx.fillStyle='#c0c8d0'; for(const dx of [-12,0,12]){ ctx.fillRect(x+dx-2,y-42,4,12); ctx.beginPath(); ctx.arc(x+dx,y-44,3,0,7); ctx.fill(); }
+    ctx.fillStyle='#f2c14e'; ctx.beginPath(); ctx.moveTo(x,y-20); ctx.lineTo(x-6,y-8); ctx.lineTo(x+6,y-8); ctx.closePath(); ctx.fill(); ctx.fillStyle='#1a1a16'; ctx.fillRect(x-1,y-17,2,6); return; }
   if(o.t==='derrick'){ shadow(x,y+6,26,8); ctx.strokeStyle='#3a3630'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x-18,y+4); ctx.lineTo(x,y-70); ctx.lineTo(x+18,y+4);
     for(let k=1;k<5;k++){ const yy=y+4-k*15, w=18*(1-k/5.2); ctx.moveTo(x-w,yy); ctx.lineTo(x+w,yy); ctx.moveTo(x-w,yy); ctx.lineTo(x+w*0.8,yy-15); } ctx.stroke();
     ctx.fillStyle='#2a2622'; ctx.fillRect(x-22,y,44,8); const tm=performance.now()/120; ctx.fillStyle='#ff9a3a'; ctx.beginPath(); ctx.moveTo(x-4,y-70); ctx.quadraticCurveTo(x,y-86-Math.sin(tm)*4,x+4,y-70); ctx.fill(); return; }
@@ -2518,9 +2606,10 @@ function drawExpo(time){ const E=expo, P2=E.P, vw=cw/zoom, vh=ch/zoom;
   const inView=(x,y,m)=>x>camX-m&&x<camX+vw+m&&y>camY-m&&y<camY+vh+m;
   ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#2a2c1c'; ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(dpr*zoom,0,0,dpr*zoom,-camX*zoom*dpr,-camY*zoom*dpr);
-  const oilA=E.area==='oel'; ctx.fillStyle=oilA?'#4e463a':'#55603a'; ctx.fillRect(0,0,EX_W,EX_H);
+  const oilA=E.area==='oel', krA=E.area==='kraft'; ctx.fillStyle=oilA?'#4e463a':krA?'#5c5e5c':'#55603a'; ctx.fillRect(0,0,EX_W,EX_H);
   const C=110, i0=Math.floor(camX/C)-1, i1=Math.ceil((camX+vw)/C)+1, j0=Math.floor(camY/C)-1, j1=Math.ceil((camY+vh)/C)+1;
   for(let i=i0;i<=i1;i++) for(let j=j0;j<=j1;j++){ if(i<0||j<0||i*C>EX_W||j*C>EX_H) continue; const h=((i*73856093)^(j*19349663))>>>0, x=i*C+(h%70), y=j*C+((h>>8)%70), k=(h>>16)%10;
+    if(krA){ if(k<3){ ctx.strokeStyle='#4a4c4a'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+14,y+6); ctx.lineTo(x+20,y+2); ctx.stroke(); } else if(k<5){ ctx.strokeStyle='#2a2a28'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(x-20,y); ctx.quadraticCurveTo(x,y+12,x+24,y-2); ctx.stroke(); } continue; }
     if(oilA){ if(k<3){ ctx.fillStyle='#1c1a16'; ctx.beginPath(); ctx.ellipse(x,y,16+k*4,7+k*2,0,0,7); ctx.fill(); ctx.fillStyle='rgba(120,110,160,.25)'; ctx.beginPath(); ctx.ellipse(x-4,y-2,6,2,0,0,7); ctx.fill(); } else if(k<6){ ctx.fillStyle='#5e5444'; ctx.fillRect(x,y,4,3); ctx.fillRect(x+7,y+4,3,2); } continue; }
     if(k<4){ ctx.fillStyle='#6a7444'; ctx.fillRect(x,y,3,7); ctx.fillRect(x+4,y+2,3,6); ctx.fillRect(x-4,y+3,3,5); }
     else if(k<6){ ctx.fillStyle='#4a5032'; ctx.beginPath(); ctx.ellipse(x,y,18,9,0,0,7); ctx.fill(); } }
@@ -2601,6 +2690,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3b</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3c</div>
 </body>
 </html>
