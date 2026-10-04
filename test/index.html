@@ -271,6 +271,7 @@ const SAVE_KEY='letzter-aussenposten-test', OLD_KEY='letzter-aussenposten-v3';
 
 // ---------- Alle Waren ----------
 const GOODS={
+  rohoel:{name:'Rohöl',price:320}, benzin:{name:'Benzin',price:1150}, flasche:{name:'Flasche',price:0}, oelfass:{name:'Ölfass',price:0}, treibstoff:{name:'Treibstofffass',price:4400}, brandsatz:{name:'Brandsatz',price:9800},
   apfel:{name:'Apfel',price:5}, ei:{name:'Ei',price:10}, weizen:{name:'Weizen',price:0}, mehl:{name:'Mehl',price:26},
   brot:{name:'Brot',price:58}, milch:{name:'Milch',price:85}, kaese:{name:'Käse',price:190},
   wasser:{name:'Wasser',price:0}, gemuese:{name:'Gemüse',price:14}, suppe:{name:'Suppe',price:55},
@@ -436,7 +437,7 @@ MAPDEFS.werkstatt={
       <p>Nachts kommen <b style="color:var(--bone)">Spucker</b>: Sie bleiben auf Abstand und legen deine Wachtürme lahm. Scheinwerfer helfen.</p>`,
 };
 MAPDEFS.labor={
-    id:'labor', name:'Robotik-Labor', num:5, costMul:2, next:null, tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.15, horde:1.3, leader:true, startMoney:1000, staff:'Kassierer',
+    id:'labor', name:'Robotik-Labor', num:5, costMul:2, next:'oel', tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.15, horde:1.3, leader:true, startMoney:1000, staff:'Kassierer',
     staffDesc:'Sammelt das Geld an den Kassen automatisch ein.',
     theme:{work:'#58626c',workDot:['30,36,44','170,190,205'],path:'rgba(120,200,230,.16)',floor:'#4a4f58'},
     sty:{
@@ -473,6 +474,45 @@ MAPDEFS.labor={
       <p>Hier kommen Horden. In Bossnächten führt ein <b style="color:var(--bone)">Anführer</b> sie an: Er ruft Verstärkung und heilt die anderen.</p>
       <p>Wenn du alles erreicht hast, startest du das <b style="color:var(--bone)">Finale</b>: Endlos-Wellen bis die Mauer fällt. Danach beginnt eine neue Welt mit <b style="color:var(--bone)">Sternen</b> – jeder bringt dauerhaft +10 % Einnahmen.</p>`,
 };
+MAPDEFS.oel={
+    id:'oel', name:'Ölfeld', num:6, costMul:2.5, next:null, tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.15, horde:1.3, leader:true, startMoney:1500, staff:'Kassierer',
+    staffDesc:'Sammelt das Geld an den Kassen automatisch ein.',
+    theme:{work:'#46423a',workDot:['24,22,18','140,128,110'],path:'rgba(20,18,14,.5)',floor:'#3c3832'},
+    sty:{
+      pumpe:      {name:'Ölpumpe',          out:'rohoel',     inp:[],                        time:1.8, up:500},
+      raffinerie: {name:'Raffinerie',       out:'benzin',     inp:['rohoel'],                time:2.4, up:1200},
+      sand:       {name:'Sandgrube',        out:'sand',       inp:[],                        time:1.6, up:400},
+      glas:       {name:'Glashütte',        out:'flasche',    inp:['sand'],                  time:2.0, up:1500},
+      imp_eisen:  {name:'Lieferung Eisen',  out:'eisen',      inp:[], imp:{map:'mine',type:'schmelze'}, time:1.6, up:2000},
+      fass:       {name:'Fassfabrik',       out:'oelfass',    inp:['eisen'],                 time:2.4, up:4000},
+      abfuell:    {name:'Abfüllung',        out:'treibstoff', inp:['benzin','oelfass'],      time:3.0, up:9000},
+      brandsatz:  {name:'Brandsatz-Werkstatt',out:'brandsatz',inp:['benzin','flasche'],      time:3.6, up:20000},
+    },
+    order:['pumpe','raffinerie','sand','glas','imp_eisen','fass','abfuell','brandsatz'],
+    inst:[
+      {id:'raffinerie1',type:'raffinerie',c:1,r:2,cost:800}, {id:'pumpe1',type:'pumpe',c:2,r:2,cost:0},
+      {id:'sand1',type:'sand',c:3,r:2,cost:1500},            {id:'pumpe2',type:'pumpe',c:4,r:2,cost:3000},
+      {id:'raffinerie2',type:'raffinerie',c:0,r:2,cost:6000},
+      {id:'imp_eisen1',type:'imp_eisen',c:1,r:1,cost:7000},  {id:'glas1',type:'glas',c:2,r:1,cost:4000},
+      {id:'fass1',type:'fass',c:3,r:1,cost:12000},           {id:'sand2',type:'sand',c:4,r:1,cost:9000},
+      {id:'glas2',type:'glas',c:0,r:1,cost:18000},
+      {id:'abfuell1',type:'abfuell',c:1,r:0,cost:30000},     {id:'brandsatz1',type:'brandsatz',c:2,r:0,cost:60000},
+      {id:'fass2',type:'fass',c:3,r:0,cost:40000},           {id:'brandsatz2',type:'brandsatz',c:4,r:0,cost:120000},
+      {id:'abfuell2',type:'abfuell',c:0,r:0,cost:90000},
+    ],
+    sell:['rohoel','benzin','treibstoff','brandsatz'],
+    crate:{rohoel:330,benzin:265,treibstoff:735,brandsatz:800},
+    goals:[
+      {text:'Alle 8 Stationsarten bauen',    cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:8},
+      {text:'6 Arbeiter einstellen',          cur:()=>S.workers.filter(w=>!w.robot).length, max:6},
+      {text:'Alle Stationsarten auf Stufe 10',cur:()=>ORDER.filter(t=>typeBuilt(t)&&(S.lv[t]||1)>=10).length, max:8},
+      {text:'Insgesamt $15.000.000 verdienen',cur:()=>S.lifetime, max:15000000, money:true},
+      {text:'10 Nächte überstehen',            cur:()=>S.nights, max:10, nights:true},
+    ],
+    intro:`<p><b style="color:var(--bone)">Map 6 · Ölfeld.</b> Die Ölpumpe fördert Rohöl, die Raffinerie macht daraus Benzin. In der Glashütte wird Sand zu Flaschen.</p>
+      <p>Benzin + Flasche ergibt in der Brandsatz-Werkstatt einen <b style="color:var(--bone)">Brandsatz</b>, die wertvollste Ware hier. Aus Eisen (Lieferung aus der Mine) baut die Fassfabrik Ölfässer, die Abfüllung macht daraus Treibstofffässer.</p>
+      <p>Die Nächte sind hart wie im Labor: Horden, Spucker und ein Anführer in Bossnächten.</p>`,
+};
 // späte Maps: Bauen und Ausbauen teurer, damit der Ausbau länger trägt
 for(const md of Object.values(MAPDEFS)){ const m=md.costMul||1; if(m===1) continue;
   md.inst.forEach(i=>{ i.cost=Math.round(i.cost*m/50)*50; }); for(const k in md.sty) md.sty[k].up=Math.round(md.sty[k].up*m); }
@@ -481,6 +521,7 @@ const MAP_LIST=[
   {id:'mine'},
   {id:'werkstatt'},
   {id:'labor'},
+  {id:'oel'},
 ];
 const LANES=[{x:500,cost:0},{x:440,cost:250},{x:560,cost:1200}];
 const TURRETS=[
@@ -1565,6 +1606,7 @@ const ACH=[
   {id:'ammo',    name:'Voll geladen',       desc:'Fülle das Munitionsdepot ganz.',                 test:()=>G.ammo>=AMMO_CAP},
   {id:'werkstatt',name:'Mechaniker',        desc:'Erreiche die Werkstatt.',                        test:()=>!!G.maps.werkstatt},
   {id:'labor',   name:'Ingenieur',          desc:'Erreiche das Robotik-Labor.',                    test:()=>!!G.maps.labor},
+  {id:'oel',     name:'Ölbaron',            desc:'Erreiche das Ölfeld.',                           test:()=>!!G.maps.oel},
   {id:'robot',   name:'Blechkollege',       desc:'Setze einen Roboter-Helfer ein.',                test:()=>false},
   {id:'million', name:'Millionär',          desc:'Verdiene insgesamt $1.000.000 (alle Maps).',    test:()=>totalLife()>=1e6},
   {id:'prestige',name:'Neuanfang',          desc:'Beginne einmal mit Sternen neu.',                test:()=>G.prestiges>0},
@@ -1786,6 +1828,12 @@ function drawGood(g,x,y,s=1){
     case 'schaltkreis': ctx.fillStyle='#2a6a3a';rr(-8,-6,16,12,2);ctx.fill();ctx.strokeStyle='#e0c060';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-6,-3);ctx.lineTo(0,-3);ctx.lineTo(2,1);ctx.lineTo(6,1);ctx.moveTo(-6,3);ctx.lineTo(4,3);ctx.stroke();ctx.fillStyle='#1e1e1c';ctx.fillRect(-3,-2,5,4);break;
     case 'batterie': ctx.fillStyle='#3a3e44';rr(-5,-7,10,14,2);ctx.fill();ctx.fillStyle='#9fc45a';ctx.fillRect(-3,-2,6,7);ctx.fillStyle='#c0c8d0';ctx.fillRect(-2,-9,4,2);break;
     case 'roboter': ctx.fillStyle='#9aa4ae';rr(-6,-2,12,9,2);ctx.fill();ctx.fillStyle='#c0c8d0';rr(-5,-9,10,7,2);ctx.fill();ctx.fillStyle='#5ae0f0';ctx.fillRect(-3,-7,6,2);ctx.fillRect(-2,1,4,2);break;
+    case 'rohoel': ctx.fillStyle='#1a1814';ctx.beginPath();ctx.moveTo(0,-8);ctx.quadraticCurveTo(8,2,6,5);ctx.quadraticCurveTo(0,11,-6,5);ctx.quadraticCurveTo(-8,2,0,-8);ctx.fill();ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(-2,2,1.8,0,7);ctx.fill();break;
+    case 'benzin': ctx.fillStyle='#c0302a';rr(-6,-5,12,13,2);ctx.fill();ctx.fillStyle='#3a3a36';ctx.fillRect(-2,-8,6,3);ctx.fillStyle='#f2c14e';ctx.fillRect(-4,-1,8,2);break;
+    case 'flasche': ctx.fillStyle='rgba(150,210,190,.85)';rr(-4,-2,8,10,2);ctx.fill();ctx.fillRect(-1.5,-8,3,7);ctx.fillStyle='rgba(255,255,255,.5)';ctx.fillRect(-2.5,0,1.5,6);break;
+    case 'oelfass': ctx.fillStyle='#5a6470';rr(-6,-7,12,15,2);ctx.fill();ctx.fillStyle='#3a4048';ctx.fillRect(-6,-3,12,2);ctx.fillRect(-6,3,12,2);break;
+    case 'treibstoff': ctx.fillStyle='#2a5a8a';rr(-6,-7,12,15,2);ctx.fill();ctx.fillStyle='#f2c14e';ctx.fillRect(-6,-3,12,2);ctx.fillRect(-6,3,12,2);ctx.fillStyle='#1a1814';ctx.beginPath();ctx.arc(0,0,1.8,0,7);ctx.fill();break;
+    case 'brandsatz': ctx.fillStyle='rgba(150,210,190,.85)';rr(-4,-2,8,10,2);ctx.fill();ctx.fillRect(-1.5,-6,3,5);ctx.fillStyle='#c0302a';ctx.fillRect(-4,2,8,4);ctx.fillStyle='#e8dcc0';ctx.fillRect(-1,-9,2,4);ctx.fillStyle='#ffb040';ctx.beginPath();ctx.arc(0,-10,2.4,0,7);ctx.fill();break;
     case 'munition': for(const d of [-5,0,5]){ctx.fillStyle='#c99a2a';rr(d-2,-2,4,9,1);ctx.fill();ctx.fillStyle='#b87a3a';ctx.beginPath();ctx.moveTo(d-2,-2);ctx.lineTo(d,-7);ctx.lineTo(d+2,-2);ctx.closePath();ctx.fill();}break;
   }
   ctx.restore();
@@ -1950,9 +1998,25 @@ function drawStation(i,time){
       ctx.fillStyle=act?'#ffb04a':'#a0502a'; ctx.beginPath(); ctx.ellipse(x,y-30,14,5,0,0,7); ctx.fill();
       if(act){ctx.fillStyle='rgba(120,120,120,.35)';ctx.beginPath();ctx.arc(x+4,y-40-(time*20%18),6,0,7);ctx.fill();}
       break;
+    case 'pumpe': { // Pumpenbock
+      ctx.fillStyle='#2a2824'; rr(x-36,y+10,72,16,4); ctx.fill();
+      ctx.fillStyle='#4a4a44'; ctx.beginPath(); ctx.moveTo(x-6,y+12); ctx.lineTo(x,y-24); ctx.lineTo(x+6,y+12); ctx.closePath(); ctx.fill();
+      const a=act?Math.sin(time*3.5)*0.32:0.12; ctx.save(); ctx.translate(x,y-24); ctx.rotate(a);
+      ctx.fillStyle='#c9642f'; rr(-34,-4,58,8,3); ctx.fill(); ctx.fillStyle='#e08a3a'; ctx.beginPath(); ctx.moveTo(-34,-8); ctx.quadraticCurveTo(-46,0,-34,10); ctx.lineTo(-30,10); ctx.lineTo(-30,-8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#3a3a36'; ctx.fillRect(22,-6,10,12); ctx.restore();
+      const hx=x-34*Math.cos(a)+10*Math.sin(a), hy=y-24-34*Math.sin(a); ctx.strokeStyle='#1d1d18'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(hx,hy+8); ctx.lineTo(x-34,y+12); ctx.stroke();
+      ctx.fillStyle='#1a1814'; ctx.beginPath(); ctx.ellipse(x-34,y+14,7,3,0,0,7); ctx.fill();
+      break; }
+    case 'raffinerie': { // Tanks und Turm
+      ctx.fillStyle='#8a8a80'; rr(x-36,y-12,28,34,6); ctx.fill(); ctx.fillStyle='#a8a89c'; ctx.beginPath(); ctx.ellipse(x-22,y-12,14,5,0,0,7); ctx.fill();
+      ctx.fillStyle='#7a7a70'; rr(x+8,y-4,28,26,6); ctx.fill(); ctx.fillStyle='#9a9a8e'; ctx.beginPath(); ctx.ellipse(x+22,y-4,14,5,0,0,7); ctx.fill();
+      ctx.fillStyle='#5a5a54'; ctx.fillRect(x-6,y-40,12,62); ctx.fillStyle='#c9642f'; for(const k of [-30,-14,2]) ctx.fillRect(x-7,y+k,14,3);
+      if(act){ const f=6+Math.sin(time*22)*3; ctx.fillStyle='#ffb040'; ctx.beginPath(); ctx.moveTo(x-4,y-40); ctx.quadraticCurveTo(x,y-40-f*2.4,x+4,y-40); ctx.fill(); ctx.fillStyle='#fff0a0'; ctx.beginPath(); ctx.arc(x,y-43,2.5,0,7); ctx.fill(); }
+      drawGood(st.out,x+22,y+12,1.1);
+      break; }
     default: { // Backstube, Brotzeitbrett, Käserei, Werkstätten
-      const roof={kaese:'#d9a832',backstube:'#b85a6a',brett:'#6a8a3a',presse:'#5a6470',werkbank:'#8a5a2a',pulvermuehle:'#3a3a36',munpresse:'#6a5a2a',zahnrad:'#5a6470',draht:'#a0582a',motorbau:'#4a5a6a',moped:'#c9642f',silizium:'#4a5a7a',schaltkreis:'#2a6a3a',batterie:'#3a3e44',roboter:'#5ae0f0'}[t]||'#8a6a4a';
-      if(['presse','munpresse','zahnrad','draht','silizium','batterie'].includes(t)){ ctx.fillStyle='#6a7078'; rr(x-30,y-22,60,46,4); ctx.fill(); ctx.fillStyle=roof; rr(x-34,y-30,68,14,4); ctx.fill();
+      const roof={kaese:'#d9a832',backstube:'#b85a6a',brett:'#6a8a3a',presse:'#5a6470',werkbank:'#8a5a2a',pulvermuehle:'#3a3a36',munpresse:'#6a5a2a',zahnrad:'#5a6470',draht:'#a0582a',motorbau:'#4a5a6a',moped:'#c9642f',silizium:'#4a5a7a',schaltkreis:'#2a6a3a',batterie:'#3a3e44',roboter:'#5ae0f0',glas:'#6aa0b0',fass:'#5a6470',abfuell:'#a07a2a',brandsatz:'#c0402a'}[t]||'#8a6a4a';
+      if(['presse','munpresse','zahnrad','draht','silizium','batterie','fass'].includes(t)){ ctx.fillStyle='#6a7078'; rr(x-30,y-22,60,46,4); ctx.fill(); ctx.fillStyle=roof; rr(x-34,y-30,68,14,4); ctx.fill();
         const py=act?Math.abs(Math.sin(time*8))*10:0; ctx.fillStyle='#3a3e44'; ctx.fillRect(x-6,y-16,12,8+py); ctx.fillStyle='#9aa0a8'; ctx.fillRect(x-14,y-8+py,28,5);
         drawGood(st.out,x,y+14,1.3); break; }
       ctx.fillStyle='#d8cfb8'; rr(x-34,y-24,68,48,5); ctx.fill();
@@ -2507,6 +2571,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.2c</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3a</div>
 </body>
 </html>
