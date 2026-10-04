@@ -277,7 +277,7 @@ const GOODS={
   brot:{name:'Brot',price:58}, milch:{name:'Milch',price:85}, kaese:{name:'Käse',price:190},
   wasser:{name:'Wasser',price:0}, gemuese:{name:'Gemüse',price:14}, suppe:{name:'Suppe',price:55},
   kuchen:{name:'Kuchen',price:120}, sandwich:{name:'Sandwich',price:170}, eintopf:{name:'Eintopf',price:340},
-  holz:{name:'Holz',price:40}, erz:{name:'Erz',price:0}, kohle:{name:'Kohle',price:0}, eisen:{name:'Eisen',price:170},
+  holz:{name:'Holz',price:40}, erz:{name:'Erz',price:0}, kohle:{name:'Kohle',price:180}, eisen:{name:'Eisen',price:170},
   naegel:{name:'Nägel',price:260}, werkzeug:{name:'Werkzeug',price:520}, pulver:{name:'Pulver',price:0}, munition:{name:'Munition',price:0},
   kupfer:{name:'Kupfer',price:70}, sand:{name:'Sand',price:90}, silizium:{name:'Silizium',price:420}, schaltkreis:{name:'Schaltkreis',price:1600}, batterie:{name:'Batterie',price:950}, roboter:{name:'Roboter',price:6500}, zahnrad:{name:'Zahnrad',price:380}, draht:{name:'Draht',price:320}, motor:{name:'Motor',price:1300}, moped:{name:'Moped',price:2900},
 };
@@ -532,7 +532,7 @@ MAPDEFS.kraftwerk={
     },
     order:['imp_kohle','kesselhaus','turbine','imp_draht','spule','imp_batterie','ladestation','imp_benzin','aggregat'],
     inst:[
-      {id:'kesselhaus1',type:'kesselhaus',c:1,r:2,cost:1500}, {id:'imp_kohle1',type:'imp_kohle',c:2,r:2,cost:0},
+      {id:'kesselhaus1',type:'kesselhaus',c:1,r:2,cost:1000}, {id:'imp_kohle1',type:'imp_kohle',c:2,r:2,cost:0},
       {id:'turbine1',type:'turbine',c:3,r:2,cost:3500},       {id:'imp_kohle2',type:'imp_kohle',c:4,r:2,cost:6000},
       {id:'kesselhaus2',type:'kesselhaus',c:0,r:2,cost:12000},
       {id:'imp_draht1',type:'imp_draht',c:1,r:1,cost:15000},   {id:'spule1',type:'spule',c:2,r:1,cost:25000},
@@ -542,8 +542,8 @@ MAPDEFS.kraftwerk={
       {id:'spule2',type:'spule',c:3,r:0,cost:90000},           {id:'ladestation2',type:'ladestation',c:4,r:0,cost:240000},
       {id:'aggregat2',type:'aggregat',c:0,r:0,cost:150000},
     ],
-    sell:['strom','spule','energiezelle'],
-    crate:{strom:330,spule:735,energiezelle:800},
+    sell:['kohle','strom','spule','energiezelle'],
+    crate:{kohle:265,strom:330,spule:735,energiezelle:800},
     goals:[
       {text:'Alle 9 Stationsarten bauen',    cur:()=>ORDER.filter(t=>typeBuilt(t)).length, max:9},
       {text:'6 Arbeiter einstellen',          cur:()=>S.workers.filter(w=>!w.robot).length, max:6},
@@ -551,7 +551,7 @@ MAPDEFS.kraftwerk={
       {text:'Insgesamt $50.000.000 verdienen',cur:()=>S.lifetime, max:50000000, money:true},
       {text:'10 Nächte überstehen',            cur:()=>S.nights, max:10, nights:true},
     ],
-    intro:`<p><b style="color:var(--bone)">Map 7 · Kraftwerk.</b> Kohle aus der Mine macht im Kesselhaus Dampf, die Turbine macht daraus <b style="color:var(--bone)">Strom</b>. Strom gibt es auch aus dem Notstromaggregat mit Benzin vom Ölfeld.</p>
+    intro:`<p><b style="color:var(--bone)">Map 7 · Kraftwerk.</b> Zum Start verkaufst du die gelieferte Kohle. Kohle aus der Mine macht im Kesselhaus Dampf, die Turbine macht daraus <b style="color:var(--bone)">Strom</b>. Strom gibt es auch aus dem Notstromaggregat mit Benzin vom Ölfeld.</p>
       <p>Draht + Strom ergibt eine <b style="color:var(--bone)">Spule</b>, Batterie + Strom eine <b style="color:var(--bone)">Energiezelle</b>, die wertvollste Ware im Spiel.</p>
       <p>Nachts kommen <b style="color:var(--bone)">Funker</b>: Wenn sie sterben, legt ein Stromstoß nahe Wachtürme lahm. Manchmal fällt nachts der Strom aus. Tesla-Spule und Elektrozaun (Menü → Ausrüstung → Spezial) halten dagegen.</p>
       <p>Expeditionen vom Kraftwerk führen in ein Umspannwerk. Dort gibt es auch die Ausrüstung <b style="color:var(--bone)">Spulen</b> für den Kugelblitz.</p>`,
@@ -2690,6 +2690,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3c</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3d</div>
 </body>
 </html>
