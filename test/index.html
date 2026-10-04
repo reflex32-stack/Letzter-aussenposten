@@ -473,7 +473,7 @@ MAPDEFS.labor={
     intro:`<p><b style="color:var(--bone)">Map 5 · Robotik-Labor.</b> Aus Sand wird Silizium, mit Kupfer ein Schaltkreis. Schaltkreis + Motor ergibt einen Roboter.</p>
       <p>Kupfer und Motoren kommen aus der Werkstatt. <b style="color:var(--bone)">Roboter</b> kannst du verkaufen oder im Menü unter „Team“ als Helfer entnehmen. Helfer-Roboter setzt du auf jeder Map ein: Sie arbeiten ohne Pause und schießen nachts mit Lasern.</p>
       <p>Hier kommen Horden. In Bossnächten führt ein <b style="color:var(--bone)">Anführer</b> sie an: Er ruft Verstärkung und heilt die anderen.</p>
-      <p>Wenn du alles erreicht hast, startest du das <b style="color:var(--bone)">Finale</b>: Endlos-Wellen bis die Mauer fällt. Danach beginnt eine neue Welt mit <b style="color:var(--bone)">Sternen</b> – jeder bringt dauerhaft +10 % Einnahmen.</p>`,
+      <p>Wenn du alle Ziele erreicht hast, geht es weiter zum <b style="color:var(--bone)">Ölfeld</b>. Das Finale wartet am Ende des Kraftwerks.</p>`,
 };
 MAPDEFS.oel={
     id:'oel', name:'Ölfeld', num:6, costMul:2.5, next:'kraftwerk', tables:null, zRunner:0.15, zBrute:0.12, zSpit:0.12, zBurn:0.16, horde:1.3, leader:true, startMoney:1500, staff:'Kassierer',
@@ -554,7 +554,8 @@ MAPDEFS.kraftwerk={
     intro:`<p><b style="color:var(--bone)">Map 7 · Kraftwerk.</b> Zum Start verkaufst du die gelieferte Kohle. Kohle aus der Mine macht im Kesselhaus Dampf, die Turbine macht daraus <b style="color:var(--bone)">Strom</b>. Strom gibt es auch aus dem Notstromaggregat mit Benzin vom Ölfeld.</p>
       <p>Draht + Strom ergibt eine <b style="color:var(--bone)">Spule</b>, Batterie + Strom eine <b style="color:var(--bone)">Energiezelle</b>, die wertvollste Ware im Spiel.</p>
       <p>Nachts kommen <b style="color:var(--bone)">Funker</b>: Wenn sie sterben, legt ein Stromstoß nahe Wachtürme lahm. Manchmal fällt nachts der Strom aus. Tesla-Spule und Elektrozaun (Menü → Ausrüstung → Spezial) halten dagegen.</p>
-      <p>Expeditionen vom Kraftwerk führen in ein Umspannwerk. Dort gibt es auch die Ausrüstung <b style="color:var(--bone)">Spulen</b> für den Kugelblitz.</p>`,
+      <p>Expeditionen vom Kraftwerk führen in ein Umspannwerk. Dort gibt es auch die Ausrüstung <b style="color:var(--bone)">Spulen</b> für den Kugelblitz.</p>
+      <p>Hast du alle Ziele erreicht, startest du hier das <b style="color:var(--bone)">Finale</b>: Endlos-Wellen bis die Mauer fällt. Danach beginnt eine neue Welt mit <b style="color:var(--bone)">Sternen</b> – jeder bringt dauerhaft +10 % Einnahmen.</p>`,
 };
 // späte Maps: Bauen und Ausbauen teurer, damit der Ausbau länger trägt
 for(const md of Object.values(MAPDEFS)){ const m=md.costMul||1; if(m===1) continue;
@@ -1374,10 +1375,11 @@ const dareOk=()=>endless&&endless.wave>=1&&endless.pause>=DARE_MIN;
 const dareStars=n=>Math.floor((n||0)/DARE_PER_STAR);
 function endG(){ if(!G.endless) G.endless={best:{},stars:0}; return G.endless; }
 const endBest=()=>Math.max(0,...Object.values(endG().best));
-const endUnlocked=()=>MD.id==='labor'&&!!S.flags.mapDone;
+const FINALE_MAP='kraftwerk';
+const endUnlocked=()=>MD.id===FINALE_MAP&&!!S.flags.mapDone;
 const END_PAUSE=20;
 function startEndless(){ if(!endUnlocked()||S.phase!=='day') return;
-  $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:30,eday:S.day,cards:{},dare:0,offer:null,mod:null,next:null,bank:0,pot:0}; G.finale={done:0,dare:0,bank:0,pot:0}; save();
+  $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:30,eday:S.day,cards:{},dare:0,offer:null,mod:null,next:null,bank:0,pot:0}; G.finale={done:0,dare:0,bank:0,pot:0,map:MD.id}; save();
   toast('Das Finale beginnt! 30 s Vorbereitung – gib dein Geld für Verteidigung aus.',4000); }
 function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*1.5); endless.mod=endless.next||null; endless.next=null;
   zSpawnLeft=Math.round(zCount(ND())*modCnt())+(bossNow()?1:0); zSpawnT=1; mines=[];
@@ -1396,7 +1398,7 @@ function waveCleared(){ const w=endless.wave, e=endG(), d=G.diff||'easy';
   if(ck) showCheckpoint(w); }
 // Checkpoints: alle 10 Wellen sichern (Welt beenden) oder weiterkämpfen; die Sterne des letzten Abschnitts sind im Einsatz
 const blockStars=k=>Math.round(Math.pow(1.5,k-1));
-function finSave(pend){ G.finale={done:endless.wave,dare:endless.dare,bank:endless.bank||0,pot:endless.pot||0,pend:!!pend}; }
+function finSave(pend){ G.finale={done:endless.wave,dare:endless.dare,bank:endless.bank||0,pot:endless.pot||0,pend:!!pend,map:MD.id}; }
 function showCheckpoint(w){ const rs=runStars(), bank=endless.bank||0, pot=endless.pot||0, ds=dareStars(endless.dare), all=rs+bank+pot+ds, nx=blockStars(w/10+1);
   const restore=()=>{ $('endres').hidden=true; $('eShare').textContent='🏆 Für Discord teilen'; };
   $('eTitle').textContent='Checkpoint: Welle '+w;
@@ -1644,15 +1646,16 @@ function renderMenu(){
     const b=document.createElement('button'); b.className='btn'; b.textContent='Weltkarte öffnen';
     b.onclick=()=>{ $('menu').hidden=true; openWorld(); };
     body.appendChild(b);
-    if(MD.id==='labor'){ const e=endG(), d=G.diff||'easy', best=e.best[d]||0;
+    if(MD.id==='labor'&&S.flags.mapDone&&!endless){ const q=document.createElement('p'); q.style.fontSize='12.5px'; q.innerHTML='<b style="color:var(--bone)">Das Finale ist umgezogen:</b> Es wartet jetzt am Ende des Kraftwerks (Map 7). Reise weiter zum Ölfeld.'; body.appendChild(q); }
+    if(MD.id===FINALE_MAP){ const e=endG(), d=G.diff||'easy', best=e.best[d]||0;
       body.appendChild(h3('Finale · Endlos-Verteidigung'));
-      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Das Ende dieser Welt: Welle um Welle, bis die Mauer fällt. Danach beginnt eine <b style="color:var(--bone)">neue Welt</b> mit deinen Sternen.<br>Sterne: <b style="color:var(--gold)">${runStars()} ★</b> für den Durchlauf (${DF().name}) <b style="color:var(--gold)">+ Wellen-Sterne</b>: Alle 10 Wellen ist ein Checkpoint. Dort beendest du die Welt und sicherst alles, oder du kämpfst weiter (Abschnitte bringen 1, 2, 2, 3, 5 … ★). Fällt die Mauer, verlierst du die Sterne des letzten Abschnitts. Zwischen den Wellen ${END_PAUSE} s Pause, vor Welle 1 sogar 30 s.<br>Nach jeder Welle wählst du eine <b style="color:var(--bone)">Taktik-Karte</b>, und die Eigenschaft der nächsten Welle (Nebel, Renner, Riesen …) wird angekündigt. Rufst du die nächste Welle früh (mind. ${DARE_MIN} s Pause übrig), gibt es <b style="color:var(--gold)">⚡ Wagemut</b>: je ${DARE_PER_STAR} = +1 ★.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Labor, um das Finale freizuschalten. Erst danach gibt es neue Sterne.'; body.appendChild(q);
+      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Das Ende dieser Welt: Welle um Welle, bis die Mauer fällt. Danach beginnt eine <b style="color:var(--bone)">neue Welt</b> mit deinen Sternen.<br>Sterne: <b style="color:var(--gold)">${runStars()} ★</b> für den Durchlauf (${DF().name}) <b style="color:var(--gold)">+ Wellen-Sterne</b>: Alle 10 Wellen ist ein Checkpoint. Dort beendest du die Welt und sicherst alles, oder du kämpfst weiter (Abschnitte bringen 1, 2, 2, 3, 5 … ★). Fällt die Mauer, verlierst du die Sterne des letzten Abschnitts. Zwischen den Wellen ${END_PAUSE} s Pause, vor Welle 1 sogar 30 s.<br>Nach jeder Welle wählst du eine <b style="color:var(--bone)">Taktik-Karte</b>, und die Eigenschaft der nächsten Welle (Nebel, Renner, Riesen …) wird angekündigt. Rufst du die nächste Welle früh (mind. ${DARE_MIN} s Pause übrig), gibt es <b style="color:var(--gold)">⚡ Wagemut</b>: je ${DARE_PER_STAR} = +1 ★.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Kraftwerk, um das Finale freizuschalten. Erst danach gibt es neue Sterne.'; body.appendChild(q);
       if(endUnlocked()){ const rr2=document.createElement('div'); rr2.className='row-end';
         const sb=document.createElement('button'); sb.className='btn'; sb.textContent=endless?'Läuft …':(finaleArm?'Wirklich? Diese Welt endet danach!':'Finale starten'); sb.disabled=!!endless||S.phase!=='day'; sb.onclick=()=>{ if(!finaleArm){ finaleArm=true; renderMenu(); return; } finaleArm=false; startEndless(); };
         const shb=document.createElement('button'); shb.className='btn dark'; shb.textContent='🏆 Rekord teilen'; shb.disabled=best<1; shb.onclick=()=>copyShare(best,null);
         rr2.append(sb,shb); body.appendChild(rr2);
         if(S.phase==='night'&&!endless){ const n=document.createElement('p'); n.style.fontSize='12.5px'; n.textContent='Starten geht nur tagsüber.'; body.appendChild(n); } } }
-    if(MD.id!=='labor'&&G.stars){ const q=document.createElement('p'); q.style.fontSize='12.5px'; q.textContent=`Deine Sterne: ${G.stars} ★ = +${G.stars*10} % auf alle Verkäufe. Neue Sterne gibt es im Finale im Robotik-Labor.`; body.appendChild(q); }
+    if(MD.id!==FINALE_MAP&&G.stars){ const q=document.createElement('p'); q.style.fontSize='12.5px'; q.textContent=`Deine Sterne: ${G.stars} ★ = +${G.stars*10} % auf alle Verkäufe. Neue Sterne gibt es im Finale im Kraftwerk.`; body.appendChild(q); }
   }
   if(tab==='ach'){
     const n=Object.keys(G.ach).length;
@@ -1665,7 +1668,7 @@ function renderMenu(){
 // ---------- Sterne & Erfolge ----------
 function totalLife(){ let l=0; for(const id in G.maps) l+=G.maps[id].lifetime; return l; }
 function newStars(){ return Math.floor(Math.sqrt(totalLife()/50000)); }
-const RUN_STARS={easy:1,normal:2,hard:3};
+const RUN_STARS={easy:2,normal:3,hard:4};
 const runStars=()=>RUN_STARS[G.diff||'easy']||1;
 function doPrestige(ns){
   workers.forEach(releaseWorker);
@@ -1714,7 +1717,7 @@ function renderWorld(){
     if(e.soon){ status='Kommt bald'; desc=e.desc; }
     else if(here){ status='Du bist hier'; desc=`Kasse $${fmt(st.money)} · Tag ${st.day} · ${st.workers.length} Arbeiter`; }
     else if(st){ status='Besucht'; desc=`Kasse $${fmt(st.money)} · Tag ${st.day} · ${st.workers.length} Arbeiter`; }
-    if(e.id==='labor'&&endBest()>0) desc+=` · 🏆 Endlos-Rekord: Welle ${endBest()}`;
+    if(e.id===FINALE_MAP&&endBest()>0) desc+=` · 🏆 Endlos-Rekord: Welle ${endBest()}`;
     else if(unlocked){ status='Freigeschaltet'; desc='Neue Waren, neue Rezepte, neue Zombies.'; }
     else { status='Gesperrt'; desc=`Erfülle zuerst alle Ziele auf ${Object.values(MAPDEFS).find(m=>m.next===e.id).name}.`; }
     card.innerHTML=`<div class="wnum">${md.num}</div><div class="winfo"><div class="wname">${md.name}<small>${status}</small></div><div class="wdesc">${desc}</div></div>`;
@@ -2669,7 +2672,8 @@ for(const id in G.maps){ const m=G.maps[id]; if(m.incRate==null) m.incRate=0; }
   const fin=()=>offline(el0), pick=()=>{ if(!G.diff) showDiff(fin); else fin(); };
   if(!S.flags.intro){ G.seenVer=NEWS_VER; if(!G.diff) showDiff(showIntro); else showIntro(); }
   else if(G.seenVer&&verLt(G.seenVer,NEWS_VER)){ const from=G.seenVer; showNews(pick,from); } else pick(); }
-if(G.finale&&G.maps.labor){ const d0=G.finale.done||0; setTimeout(()=>{ $('news').hidden=true; $('welcome').hidden=true; if(G.cur!=='labor'){ G.cur='labor'; } const f=G.finale, pend=!!f.pend, hasB=f.bank!=null; finishWorld(d0,f.dare||0,hasB?(f.bank||0)+(pend?(f.pot||0):0):Math.floor(d0/10),hasB&&!pend?(f.pot||0):0); toast('Das Finale wurde unterbrochen und ist ausgewertet.',3500); },600); }
+if(G.finale&&G.maps[G.finale.map||'labor']){ const d0=G.finale.done||0, fm=G.finale.map||'labor'; setTimeout(()=>{ $('news').hidden=true; $('welcome').hidden=true; if(G.cur!==fm){ G.cur=fm; } const f=G.finale, pend=!!f.pend, hasB=f.bank!=null; finishWorld(d0,f.dare||0,hasB?(f.bank||0)+(pend?(f.pot||0):0):Math.floor(d0/10),hasB&&!pend?(f.pot||0):0); toast('Das Finale wurde unterbrochen und ist ausgewertet.',3500); },600); }
+if(!G.finale&&G.maps.labor&&G.maps.labor.flags.mapDone&&!G.maps.kraftwerk) setTimeout(()=>toast('Neu: Ölfeld und Kraftwerk! Das Finale wartet jetzt am Ende des Kraftwerks.',4200),2500);
 setInterval(save,5000);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
 addEventListener('pagehide',save);
@@ -2690,6 +2694,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3d</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3e</div>
 </body>
 </html>
