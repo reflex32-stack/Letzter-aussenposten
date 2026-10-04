@@ -52,7 +52,13 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .nightbtn:active{transform:translateY(1px)}
 #cards{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:9;pointer-events:auto;width:min(560px,calc(100vw - 20px));background:rgba(23,25,15,.94);border:1.5px solid var(--gold);border-radius:10px;padding:8px;box-sizing:border-box}
 #cards h3{margin:0 0 6px;font:700 13px var(--body);color:var(--gold);text-align:center}
-#cards .cr{display:flex;gap:6px}
+#bossBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 118px);z-index:7;width:min(420px,calc(100vw - 40px));pointer-events:none;text-align:center;font:700 12px var(--body);color:#f08a6a;text-shadow:0 1px 2px #000}
+#bossBar .b{height:8px;background:rgba(0,0,0,.6);border:1px solid #8a2a1a;border-radius:4px;overflow:hidden;margin-top:3px}
+#bossFill{display:block;height:100%;background:#c0302a;width:100%}
+#cards .cr{display:flex;flex-wrap:wrap;gap:6px}
+#cards.info{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 150px);border-color:var(--line);padding:6px}
+#cards.info p{margin:0}
+#cards .cr button{flex:1 1 40%}
 #cards p{margin:0 0 7px;text-align:center;font:600 12px/1.35 var(--body);color:#f0b08a}
 #cards button{flex:1;min-width:0;text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--bone);border-radius:8px;padding:7px 8px;font:600 11.5px/1.35 var(--body);cursor:pointer}
 #cards button b{display:block;font-size:11px;letter-spacing:-.2px;color:var(--sand);margin-bottom:2px;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
@@ -216,6 +222,7 @@ body.cardsOn #ctx{display:none!important}
 
 <div id="expoHud" hidden><div class="r"><span id="exTime"></span><span id="exInfo"></span><button id="exQuit">Aufgeben</button></div><div class="b"><i id="exHp"></i></div><div class="b"><i id="exXp"></i></div></div>
 <div id="expoUp" hidden><h3 id="expoUpT"></h3><div class="cr" id="expoUpR"></div></div>
+<div id="bossBar" hidden><span id="bossName">💀 Boss</span><div class="b"><i id="bossFill"></i></div></div>
 <div id="cards" hidden><h3 id="cardsT">Taktik-Karte wählen</h3><p id="cardsN" hidden></p><div class="cr" id="cardsR"></div></div>
 <div class="modal" id="endres" hidden>
   <div class="sheet" role="dialog" aria-labelledby="eTitle">
@@ -786,7 +793,7 @@ let spawnT=1, zSpawnLeft=0, zSpawnT=0, repairing=false, mechWork=false;
 let wallAttackers=0;
 let endless=null, finaleArm=false; // läuft gerade die Endlos-Verteidigung?
 const ND=()=>endless?endless.eday:S.day, bossNow=()=>endless?(endless.wave>0&&endless.wave%5===0):isBossNight(S.day);
-let specT={oil:0,cata:0,gun:0,laser:0,flame:0,tesla:0,zaun:0,over:0}, flameA=null, zaps=[], blackT=0, blackOut=0, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
+let supplies=[], specT={oil:0,cata:0,gun:0,laser:0,flame:0,tesla:0,zaun:0,over:0}, flameA=null, zaps=[], blackT=0, blackOut=0, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
 const MECH_POS=[{x:445,y:856},{x:555,y:856}];
 const spotOf=i=>({x:i.x,y:i.y+SPOT_DY});
 const lanePile=k=>({x:LANES[k].x,y:COUNTER.y0+12});
@@ -1097,7 +1104,7 @@ function contractProgress(g){
     burst(CRATE[g],COUNTER.y0,'#f2c14e',24); S.contract=null; S.contractCd=40; }
 }
 function updateContract(dt){
-  if(!typeBuilt(ORDER[1])) return;
+  if(endless||!typeBuilt(ORDER[1])) return;
   if(!S.contract){ S.contractCd-=dt; if(S.contractCd<=0) newContract(); return; }
   S.contract.t-=dt;
   if(S.contract.t<=0){ toast('Auftrag verpasst – der nächste kommt bald.',2400); S.contract=null; S.contractCd=30; }
@@ -1249,6 +1256,7 @@ function killReward(z){ if(z.dead) return; z.dead=true;
   S.money+=r; S.lifetime+=r; addFloat(z.x,z.y-24,'+$'+fmt(r),'#9fc45a'); burst(z.x,z.y,'#5c7a3a',12); }
 function shoot(x,y,range,dmg,from){
   if(from==='g'&&G.crossbow){ range+=60; dmg*=1.6; }
+  if(endless&&endless.ammoT>0&&(from==='t'||from==='g')) dmg*=2;
   if(from!=='p'&&curMod()==='fog') range*=0.75;
   let ammo=false; if((from==='t'||from==='g')&&G.ammo>0){ ammo=true; dmg*=2; G.ammo=Math.max(0,G.ammo-0.25); }
   const inRange=zombies.filter(z=>!z.dead&&dist(x,y,z.x,z.y)<range).sort((a,b)=>dist(x,y,a.x,a.y)-dist(x,y,b.x,b.y));
@@ -1302,12 +1310,22 @@ function updateSpecials(dt){
   if((l=sl('zaun'))>0){ specT.zaun-=dt; if(specT.zaun<=0){ specT.zaun=3; const w=zombies.filter(z=>!z.dead&&!z.spitter&&z.y<=y1+20);
     if(w.length){ for(const z of w){ hurt(z,ref*(0.15+0.06*l)); z.stunT=0.6+0.05*l; } beep(900,.12,'sawtooth',.03,-400); for(const z of w.slice(0,6)) zaps.push({pts:[{x:z.x-10,y:y1+2},{x:z.x,y:z.y-14},{x:z.x+10,y:y1+2}],t:0.15}); } } }
   // Taktik-Karte Überladung (Finale)
-  if(cb('over')){ specT.over-=dt; if(specT.over<=0){ specT.over=4; const c=zombies.filter(z=>!z.dead).sort(()=>Math.random()-0.5).slice(0,2*cb('over'));
+  if(cb('over')){ specT.over-=dt; if(specT.over<=0){ specT.over=4; const c=zombies.filter(z=>!z.dead).sort(()=>Math.random()-0.5).slice(0,Math.round(2*cb('over')));
     for(const z of c){ hurt(z,ref*1.2); zaps.push({pts:[{x:z.x+Math.random()*30-15,y:z.y-260},{x:z.x+Math.random()*20-10,y:z.y-130},{x:z.x,y:z.y-14}],t:0.2}); } if(c.length) beep(1500,.12,'square',.04,-1200); } }
   for(const zp of zaps) zp.t-=dt; zaps=zaps.filter(zp=>zp.t>0);
   // Stromausfall im Kraftwerk
   if(blackT>0&&!endless){ blackT-=dt; if(blackT<=0){ blackOut=5; for(const k in TR) TR[k].stun=Math.max(TR[k].stun||0,5); toast('⚡ Stromausfall! Die Wachtürme sind 5 s lahm.',2400); beep(80,.6,'sawtooth',.06,-30); } }
   if(blackOut>0) blackOut-=dt;
+  // Nachschub-Kisten im Finale
+  if(endless&&endless.pause<=0){ endless.supT=(endless.supT==null?12:endless.supT)-dt;
+    if(endless.supT<=0){ endless.supT=15+Math.random()*5; const k=['rep','ammo','bomb'][Math.floor(Math.random()*3)];
+      supplies.push({x:COMP.x0+50+Math.random()*(COMP.x1-COMP.x0-100),y:COMP.y0+80+Math.random()*(COMP.y1-COMP.y0-160),k,t:14}); toast('📦 Nachschub gelandet! Hol ihn dir.',1800); beep(500,.15,'triangle',.04,200); } }
+  for(const sp of supplies){ sp.t-=dt; if(dist(P.x,P.y,sp.x,sp.y)<30){ sp.t=0;
+      if(sp.k==='rep'){ S.wallHp=Math.min(wallMax(),S.wallHp+wallMax()*0.2); toast('🔧 Mauer +20 %',1400); }
+      else if(sp.k==='ammo'){ endless.ammoT=10; toast('🎯 Türme 10 s doppelter Schaden!',1400); }
+      else { for(const z of zombies) if(!z.dead&&z.y<y1+220) hurt(z,ref*2*(z.boss?0.3:1)); for(let k=0;k<6;k++) burst(180+k*130,y1+80,'#f08a2a',20); toast('💥 BUMM!',1200); }
+      beep(800,.12,'square',.04,300); } }
+  supplies=supplies.filter(sp=>sp.t>0); if(endless&&endless.ammoT>0) endless.ammoT-=dt;
   // Taktik-Karte Flammenwand (Finale)
   if(cb('fwall')){ for(const z of zombies) if(!z.dead&&z.y<y1+60) hurt(z,ref*0.12*cb('fwall')*dt); }
 }
@@ -1323,34 +1341,37 @@ function useSkill(){ const k=skillInfo(); if(!k||!k.ready) return; const y1=COMP
 // ---------- Endlos-Verteidigung (Labor) ----------
 // Taktik-Karten (Finale): nach jeder Welle 1 von 3 wählen, gelten bis zum Weltende
 const CARDS=[
-  {id:'dmg',  name:'Scharfschützen', desc:'+15 % Schaden für alle Abwehr'},
-  {id:'giant',name:'Panzerbrecher',  desc:'+40 % Schaden gegen Riesen und Bosse'},
-  {id:'slow', name:'Schlamm',        desc:'Zombies 10 % langsamer', ok:()=>cb('slow')<5},
-  {id:'rep',  name:'Werkzeugkiste',  desc:'Reparieren +30 %'},
-  {id:'mine', name:'Minenfeld',      desc:'+4 Minen vor jeder Welle'},
-  {id:'wall', name:'Notreparatur',   desc:'Mauer sofort +40 %', once:true, ok:()=>S.wallHp<wallMax()*0.85},
+  {id:'dmg',  name:'Scharfschützen', desc:'+23 % Schaden für alle Abwehr'},
+  {id:'giant',name:'Panzerbrecher',  desc:'+60 % Schaden gegen Riesen und Bosse'},
+  {id:'slow', name:'Schlamm',        desc:'Zombies 15 % langsamer', ok:()=>cbn('slow')<3},
+  {id:'rep',  name:'Werkzeugkiste',  desc:'Reparieren +45 %'},
+  {id:'mine', name:'Minenfeld',      desc:'+6 Minen vor jeder Welle'},
+  {id:'wall', name:'Notreparatur',   desc:'Mauer sofort +60 %', once:true, ok:()=>S.wallHp<wallMax()*0.85},
   {id:'cash', name:'Kriegskasse',    desc:'', once:true},
-  {id:'shcd', name:'Kondensator',    desc:'Schild lädt 25 % schneller', ok:()=>sl('shield')>0},
-  {id:'boom', name:'Sprengmeister',  desc:'Sprengladung +50 % Schaden', ok:()=>sl('blast')>0},
-  {id:'over', name:'Überladung',     desc:'Alle 4 s schlagen Blitze in 2 Zombies ein (Kraftwerk)', ok:()=>!!G.maps.kraftwerk},
+  {id:'shcd', name:'Kondensator',    desc:'Schild lädt 35 % schneller', ok:()=>sl('shield')>0},
+  {id:'boom', name:'Sprengmeister',  desc:'Sprengladung +75 % Schaden', ok:()=>sl('blast')>0},
+  {id:'over', name:'Überladung',     desc:'Alle 4 s schlagen Blitze in 3 Zombies ein (Kraftwerk)', ok:()=>!!G.maps.kraftwerk},
   {id:'fwall',name:'Flammenwand',    desc:'Feuer vor der Mauer verbrennt Zombies (Ölfeld)', ok:()=>!!G.maps.oel},
 ];
-const cb=id=>(endless&&endless.cards&&endless.cards[id])||0;
+const CARD_POW=1.5; // Karten kommen nur nach Bossen und wirken 50 % stärker
+const cbn=id=>(endless&&endless.cards&&endless.cards[id])||0;
+const cb=id=>cbn(id)*CARD_POW;
 const cardMul=z=>endless?(1+0.15*cb('dmg'))*((z.boss||z.brute)?1+0.4*cb('giant'):1):1;
-const cashAmt=()=>Math.round(1200*Math.max(1,endless.wave)*MD.num);
+const cashAmt=()=>Math.round(1800*Math.max(1,endless.wave)*MD.num);
 function cardDesc(c){ return c.id==='cash'?'Sofort $'+fmt(cashAmt())+' für Verteidigung':c.desc; }
 function offerCards(){ const pool=CARDS.filter(c=>!c.ok||c.ok()); const pick=[];
-  while(pick.length<3&&pool.length) pick.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  while(pick.length<4&&pool.length) pick.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
   endless.offer=pick.map(c=>c.id); renderCards(); }
-function renderCards(){ const box=$('cards'), on=!!(endless&&endless.offer); document.body.classList.toggle('cardsOn',on); if(!on){ box.hidden=true; return; }
-  $('cardsT').textContent='Taktik-Karte wählen · Welle '+endless.wave+' geschafft'; const r=$('cardsR'); r.innerHTML='';
+function renderCards(){ const box=$('cards'), on=!!(endless&&endless.offer); document.body.classList.toggle('cardsOn',on);
+  const info=!!(endless&&endless.pause>0&&endless.wave>0&&(endless.next||(endless.wave+1)%5===0)); if(!on&&!info){ box.hidden=true; return; }
+  box.classList.toggle('info',!on); $('cardsT').textContent=on?'Boss besiegt! Taktik-Karte wählen':'Welle '+endless.wave+' geschafft'; const r=$('cardsR'); r.innerHTML=''; r.hidden=!on;
   const nm=endless.next&&modInfo(endless.next), nb=(endless.wave+1)%5===0, cn=$('cardsN'); cn.hidden=!(nm||nb); cn.textContent=nm?'Nächste Welle: '+nm.icon+' '+nm.name+' – '+nm.desc:nb?'Nächste Welle: 💀 Bosswelle':'';
-  for(const id of endless.offer){ const c=CARDS.find(x=>x.id===id), n=cb(id);
+  for(const id of (endless.offer||[])){ const c=CARDS.find(x=>x.id===id), n=cbn(id);
     const b=document.createElement('button'); b.innerHTML='<b>'+c.name+(n&&!c.once?' ('+(n+1)+'×)':'')+'</b>'+cardDesc(c);
     b.onclick=()=>{ initAudio(); takeCard(id,false); }; r.appendChild(b); }
   box.hidden=false; }
 function takeCard(id,auto){ if(!endless) return; const c=CARDS.find(x=>x.id===id);
-  if(id==='wall') S.wallHp=Math.min(wallMax(),S.wallHp+wallMax()*0.4);
+  if(id==='wall') S.wallHp=Math.min(wallMax(),S.wallHp+wallMax()*0.6);
   else if(id==='cash'){ const m=cashAmt(); S.money+=m; S.lifetime+=m; }
   else endless.cards[id]=(endless.cards[id]||0)+1;
   endless.offer=null; renderCards(); beep(660,.12,'triangle',.05,330);
@@ -1370,21 +1391,22 @@ const modHp=()=>{ const m=curMod(); return m==='swarm'?0.65:m==='blood'?1.25:1; 
 const modCnt=()=>{ const m=curMod(); return m==='swarm'?1.5:m==='giant'?0.6:1; };
 function pickMod(nw){ if(nw<2||nw%5===0) return null; const pool=MODS.filter(m=>m.id!==endless.mod); return pool[Math.floor(Math.random()*pool.length)].id; }
 // Wagemut: Welle früh rufen (mind. 10 s Pause übrig) bringt Wagemut, je 5 = +1 Stern
-const DARE_PER_STAR=5, DARE_MIN=10;
+const DARE_PER_STAR=5, DARE_MIN=4;
 const dareOk=()=>endless&&endless.wave>=1&&endless.pause>=DARE_MIN;
 const dareStars=n=>Math.floor((n||0)/DARE_PER_STAR);
 function endG(){ if(!G.endless) G.endless={best:{},stars:0}; return G.endless; }
 const endBest=()=>Math.max(0,...Object.values(endG().best));
 const FINALE_MAP='kraftwerk';
 const endUnlocked=()=>MD.id===FINALE_MAP&&!!S.flags.mapDone;
-const END_PAUSE=20;
+const END_PAUSE=8;
+const finSpd=()=>endless?Math.min(2,1.5+0.01*Math.max(0,endless.wave-1)):1;
 function startEndless(){ if(!endUnlocked()||S.phase!=='day') return;
   $('menu').hidden=true; startNight(); zSpawnLeft=0; endless={wave:0,pause:30,eday:S.day,cards:{},dare:0,offer:null,mod:null,next:null,bank:0,pot:0}; G.finale={done:0,dare:0,bank:0,pot:0,map:MD.id}; save();
   toast('Das Finale beginnt! 30 s Vorbereitung – gib dein Geld für Verteidigung aus.',4000); }
-function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*1.5); endless.mod=endless.next||null; endless.next=null;
+function nextWave(){ endless.wave++; endless.eday=S.day+Math.round(endless.wave*1.5); endless.mod=endless.next||null; endless.next=null; setTimeout(renderCards,0);
   zSpawnLeft=Math.round(zCount(ND())*modCnt())+(bossNow()?1:0); zSpawnT=1; mines=[];
   if(endless.offer){ const ids=endless.offer; takeCard(ids[Math.floor(Math.random()*ids.length)],true); }
-  for(let i=0;i<2*S.up.mine+4*cb('mine');i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
+  for(let i=0;i<2*S.up.mine+Math.round(4*cb('mine'));i++) mines.push({x:160+Math.random()*680,y:950+Math.random()*150});
   blastUsed=false; specT={oil:1,cata:1,gun:0,laser:0,flame:0,tesla:1,zaun:1,over:2};
   const mi=curMod()&&modInfo(curMod()); toast((bossNow()?'Bosswelle ':'Welle ')+endless.wave+(mi?': '+mi.icon+' '+mi.name:'')+'!',1800); beep(180,.4,'sawtooth',.05,-80); }
 function waveCleared(){ const w=endless.wave, e=endG(), d=G.diff||'easy';
@@ -1394,7 +1416,7 @@ function waveCleared(){ const w=endless.wave, e=endG(), d=G.diff||'easy';
   finSave(ck);
   const tot=runStars()+(endless.bank||0)+dareStars(endless.dare);
   toast('Welle '+w+' geschafft! +$'+fmt(bonus)+' · gesichert: '+tot+' ★'+(endless.pot?' (+'+endless.pot+' ★ im Einsatz)':''),3200);
-  endless.pause=END_PAUSE; endless.next=pickMod(w+1); offerCards(); save();
+  endless.pause=END_PAUSE; endless.next=pickMod(w+1); if(w%5===0) offerCards(); else renderCards(); save();
   if(ck) showCheckpoint(w); }
 // Checkpoints: alle 10 Wellen sichern (Welt beenden) oder weiterkämpfen; die Sterne des letzten Abschnitts sind im Einsatz
 const blockStars=k=>Math.round(Math.pow(1.5,k-1));
@@ -1418,7 +1440,7 @@ function finishWorld(done,dare,ws,lost){ const e=endG(), d=G.diff||'easy';
   if(done>(e.best[d]||0)) e.best[d]=done;
   if(ws==null) ws=Math.floor(done/10);
   const rs=runStars(), ds=dareStars(dare), gain=rs+ws+ds;
-  endless=null; G.finale=null; zombies=[]; mines=[]; globs=[]; pots=[]; $('cards').hidden=true; document.body.classList.remove('cardsOn');
+  endless=null; G.finale=null; zombies=[]; mines=[]; globs=[]; pots=[]; supplies=[]; $('cards').hidden=true; $('bossBar').hidden=true; document.body.classList.remove('cardsOn');
   doPrestige(gain); showEndResult(done,rs,ws,ds,dare||0,lost||0); }
 function endEndless(){ finishWorld(endless.wave-1,endless.dare,endless.bank||0,endless.pot||0); }
 function shareText(n){ return `🏆 Letzter Außenposten – Endlos-Verteidigung: Welle ${n} auf ${DF().name} geschafft! Schaffst du mehr? https://reflex32-stack.github.io/Letzter-aussenposten/`; }
@@ -1428,16 +1450,22 @@ function showEndResult(n,rs,ws,ds,dare,lost){ const d=G.diff||'easy', best=endG(
   $('eTitle').textContent='Das Ende dieser Welt'; $('eText').innerHTML=`Du hast im Finale <b style="color:var(--bone)">${n} ${n===1?'Welle':'Wellen'}</b> überstanden (Rekord auf ${DF().name}: ${best}).<br><br>Sterne: <b style="color:var(--gold)">+${rs} ★</b> Durchlauf (${DF().name})${ws?` · <b style="color:var(--gold)">+${ws} ★</b> Wellen`:''}${ds?` · <b style="color:var(--gold)">+${ds} ★</b> Wagemut (${dare} ⚡)`:''}${lost?`<br><span style="color:#f08a6a">${lost} ★ im Einsatz verloren</span>`:''}<br>Du startest jetzt eine neue Welt mit <b style="color:var(--gold)">${G.stars} ★</b> = +${G.stars*10} % auf alle Verkäufe.`;
   const ta=$('eShareTxt'); ta.hidden=true; $('eShare').hidden=false; $('eShare').onclick=()=>copyShare(n,ta); $('eOk').textContent='Neue Welt starten'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; };
   $('endres').hidden=false; beep(120,.6,'sawtooth',.05,-60); }
+function bossAbility(z,dt){ z.abT=(z.abT==null?4:z.abT)-dt; if(z.abT>0) return; z.abT=6; z.abN=(z.abN||0)+1;
+  const bi=Math.round(endless.wave/5);
+  if(bi>=3&&z.abN%3===0&&zombies.length<60){ for(let k=0;k<3;k++){ const hp=zHp(ND())*(1+0.25*(MD.num-1)); zombies.push({x:z.x+(Math.random()*80-40),y:z.y+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,z.x+(Math.random()*200-100))),hp,max:hp,sp:Math.min(38,24+ND()*0.35)*finSpd(),walk:0,face:-Math.PI/2,atk:0,spitT:0}); }
+    burst(z.x,z.y-30,'#b04ae0',20); toast('Der Boss ruft Verstärkung!',1600); beep(140,.3,'sawtooth',.05,80); return; }
+  if(z.abN%2===1){ z.chargeT=1.2; burst(z.x,z.y-10,'#c0a080',18); toast('Der Boss stürmt los!',1400); beep(90,.5,'sawtooth',.07,40); }
+  else { for(const o of zombies) if(o!==z&&!o.dead&&dist(o.x,o.y,z.x,z.y)<220) o.fastT=5; burst(z.x,z.y-40,'#e0503a',24); toast('Gebrüll! Zombies werden schneller.',1400); beep(70,.6,'square',.06,-20); } }
 function updateNight(dt){
   zSpawnT-=dt;
-  if(zSpawnLeft>0&&zSpawnT<=0){ zSpawnT=Math.min(Math.max(0.8,2.6-ND()*0.05),34/Math.max(1,zCount(ND())))*(0.6+Math.random()*0.8)*DF().spawn; // alle Zombies kommen in gut 30 s
+  if(zSpawnLeft>0&&zSpawnT<=0){ zSpawnT=Math.min(Math.max(0.8,2.6-ND()*0.05),(endless?18:34)/Math.max(1,zCount(ND())))*(0.6+Math.random()*0.8)*DF().spawn; // alle Zombies kommen in gut 30 s
    const grp=1+(ND()>2&&Math.random()<DF().group?1+Math.floor(Math.random()*2):0);
    for(let gi=0;gi<grp&&zSpawnLeft>0;gi++){ zSpawnLeft--;
     const sm=DF().spec, wm=curMod(); let zr=(MD.zRunner||0)*sm, zb=(MD.zBrute||0)*sm, zs=(MD.zSpit||0)*sm;
     if(wm==='runner') zr=Math.max(zr,0.5); if(wm==='giant') zb=Math.max(zb,0.45); if(wm==='spit') zs+=0.3;
     const boss=bossNow()&&zSpawnLeft===0, roll=Math.random(), runner=!boss&&roll<zr, brute=!boss&&!runner&&roll<zr+zb, spitter=!boss&&!runner&&!brute&&roll<zr+zb+zs, burner=!boss&&!runner&&!brute&&!spitter&&Math.random()<(MD.zBurn||0)*sm, funk=!boss&&!runner&&!brute&&!spitter&&!burner&&Math.random()<(MD.zFunk||0)*sm;
-    const x=boss?GATE_X+(Math.random()*120-60):150+Math.random()*700, hp=zHp(ND())*(boss?20:runner?0.5:brute?3:spitter?1.2:1)*(1+0.25*(MD.num-1))*(boss?1:modHp());
-    const sp=boss?18:Math.min(38,19+Math.random()*8+ND()*0.35)*(runner?1.9:brute?0.6:burner?1.35:1);
+    const x=boss?GATE_X+(Math.random()*120-60):150+Math.random()*700, hp=zHp(ND())*(boss?(endless?36*(1+0.15*Math.max(0,endless.wave/5-1)):20):runner?0.5:brute?3:spitter?1.2:1)*(1+0.25*(MD.num-1))*(boss?1:modHp());
+    const sp=(boss?18:Math.min(38,19+Math.random()*8+ND()*0.35)*(runner?1.9:brute?0.6:burner?1.35:1))*finSpd();
     zombies.push({x,y:H+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,x+(GATE_X-x)*0.35)),hp,max:hp,boss,leader:boss&&!!MD.leader,sumT:0,runner,brute,spitter,burner,funk,spitT:Math.random()*2,sp,walk:Math.random()*6,face:-Math.PI/2,atk:0});
     if(boss){ toast(MD.leader?'Der Anführer ist da! Er ruft Verstärkung.':'Der Boss ist da!',2200); beep(80,.8,'sawtooth',.07,-30); } } }
   for(const mn of mines){ if(mn.boom) continue;
@@ -1453,16 +1481,19 @@ function updateNight(dt){
     if(inWire&&dps){ z.hp-=dps*dt; if(z.hp<=0){ killReward(z); continue; } }
     if(z.leader){ z.sumT+=dt;
       if(z.sumT>=6&&zombies.length<40){ z.sumT=0; for(let k=0;k<2;k++){ const hp=zHp(ND())*(1+0.25*(MD.num-1));
-        zombies.push({x:z.x+(Math.random()*60-30),y:z.y+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,z.x+(Math.random()*160-80))),hp,max:hp,sp:Math.min(38,22+ND()*0.35),walk:0,face:-Math.PI/2,atk:0,spitT:0}); }
+        zombies.push({x:z.x+(Math.random()*60-30),y:z.y+10,tx:Math.max(COMP.x0+20,Math.min(COMP.x1-20,z.x+(Math.random()*160-80))),hp,max:hp,sp:Math.min(38,22+ND()*0.35)*finSpd(),walk:0,face:-Math.PI/2,atk:0,spitT:0}); }
         burst(z.x,z.y-30,'#b04ae0',16); beep(140,.3,'sawtooth',.04,80); }
       for(const o of zombies){ if(o!==z&&!o.dead&&dist(o.x,o.y,z.x,z.y)<130) o.hp=Math.min(o.max,o.hp+o.max*0.04*dt); } }
-    if(z.spitter){ const sy=COMP.y1+175;
+    if(z.spitter&&endless){ z.spitAge=(z.spitAge||0)+dt; if(z.spitAge>10) z.spitter=false; } // im Finale rücken Spucker nach 10 s vor
+    if(z.spitter){ const sy=COMP.y1+(endless?110:175);
       if(z.y>sy+1) moveTo(z,z.tx,sy,z.sp*specSlow(z),dt);
       else { z.spitT+=dt; z.walk+=dt*2; if(z.spitT>=3){ z.spitT=0; const tl=TURRETS.filter(t=>S.tur[t.id].unlocked&&!(TR[t.id].stun>0));
         const t=tl.length?tl[Math.floor(Math.random()*tl.length)]:null;
         globs.push({x0:z.x,y0:z.y-20,x1:t?t.x:z.x,y1:t?t.y-20:COMP.y1,t:0,dur:1,tur:t?t.id:null}); beep(220,.12,'sine',.03,-120); } }
       continue; }
-    if(z.y>COMP.y1+16) moveTo(z,z.tx,COMP.y1+16,z.sp*(inWire?wireSlow():1)*specSlow(z),dt);
+    if(z.boss&&endless) bossAbility(z,dt);
+    if(z.fastT>0) z.fastT-=dt; if(z.chargeT>0) z.chargeT-=dt;
+    if(z.y>COMP.y1+16) moveTo(z,z.tx,COMP.y1+16,z.sp*(inWire?wireSlow():1)*specSlow(z)*(z.chargeT>0?3:1)*(z.fastT>0?1.4:1),dt);
     else if(z.burner){ z.dead=true; if(!(shieldT>0)) S.wallHp-=zWallDmg(ND())*20; burst(z.x,z.y-10,'#ff9a3a',30); burst(z.x,z.y-10,'#3a3a36',14); beep(70,.4,'sawtooth',.07,-40);
       for(const k in TR){ const t=TURRETS.find(q=>q.id===k); if(t&&dist(t.x,t.y,z.x,z.y)<160) TR[k].stun=Math.max(TR[k].stun||0,2); } continue; }
     else { z.atk+=dt; if(z.stunT>0){ z.stunT-=dt; continue; } if(!(shieldT>0)) S.wallHp-=zWallDmg(ND())*(z.boss?4:z.brute?3:1)*dt; z.walk+=dt*4; if(z.atk>0.8){z.atk=0; if(Math.random()<.3)beep(90,.08,'sawtooth',.03);} }
@@ -1649,7 +1680,7 @@ function renderMenu(){
     if(MD.id==='labor'&&S.flags.mapDone&&!endless){ const q=document.createElement('p'); q.style.fontSize='12.5px'; q.innerHTML='<b style="color:var(--bone)">Das Finale ist umgezogen:</b> Es wartet jetzt am Ende des Kraftwerks (Map 7). Reise weiter zum Ölfeld.'; body.appendChild(q); }
     if(MD.id===FINALE_MAP){ const e=endG(), d=G.diff||'easy', best=e.best[d]||0;
       body.appendChild(h3('Finale · Endlos-Verteidigung'));
-      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Das Ende dieser Welt: Welle um Welle, bis die Mauer fällt. Danach beginnt eine <b style="color:var(--bone)">neue Welt</b> mit deinen Sternen.<br>Sterne: <b style="color:var(--gold)">${runStars()} ★</b> für den Durchlauf (${DF().name}) <b style="color:var(--gold)">+ Wellen-Sterne</b>: Alle 10 Wellen ist ein Checkpoint. Dort beendest du die Welt und sicherst alles, oder du kämpfst weiter (Abschnitte bringen 1, 2, 2, 3, 5 … ★). Fällt die Mauer, verlierst du die Sterne des letzten Abschnitts. Zwischen den Wellen ${END_PAUSE} s Pause, vor Welle 1 sogar 30 s.<br>Nach jeder Welle wählst du eine <b style="color:var(--bone)">Taktik-Karte</b>, und die Eigenschaft der nächsten Welle (Nebel, Renner, Riesen …) wird angekündigt. Rufst du die nächste Welle früh (mind. ${DARE_MIN} s Pause übrig), gibt es <b style="color:var(--gold)">⚡ Wagemut</b>: je ${DARE_PER_STAR} = +1 ★.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Kraftwerk, um das Finale freizuschalten. Erst danach gibt es neue Sterne.'; body.appendChild(q);
+      const q=document.createElement('p'); q.innerHTML=endUnlocked()?`Das Ende dieser Welt: Welle um Welle, bis die Mauer fällt. Danach beginnt eine <b style="color:var(--bone)">neue Welt</b> mit deinen Sternen.<br>Sterne: <b style="color:var(--gold)">${runStars()} ★</b> für den Durchlauf (${DF().name}) <b style="color:var(--gold)">+ Wellen-Sterne</b>: Alle 10 Wellen ist ein Checkpoint. Dort beendest du die Welt und sicherst alles, oder du kämpfst weiter (Abschnitte bringen 1, 2, 2, 3, 5 … ★). Fällt die Mauer, verlierst du die Sterne des letzten Abschnitts. Zwischen den Wellen ${END_PAUSE} s Pause, vor Welle 1 sogar 30 s.<br>Nach jeder Bosswelle wählst du eine <b style="color:var(--bone)">Taktik-Karte</b> (1 aus 4). Die Eigenschaft der nächsten Welle (Nebel, Renner, Riesen …) wird vorher angekündigt. Während der Wellen landen <b style="color:var(--bone)">📦 Nachschub-Kisten</b> im Lager: hinlaufen und einsammeln! Rufst du die nächste Welle früh (mind. ${DARE_MIN} s Pause übrig), gibt es <b style="color:var(--gold)">⚡ Wagemut</b>: je ${DARE_PER_STAR} = +1 ★.<br>Rekord: <b style="color:var(--bone)">${['easy','normal','hard'].map(k=>DIFFS[k].name+' '+(e.best[k]||0)).join(' · ')}</b>`:'Erfülle alle Ziele im Kraftwerk, um das Finale freizuschalten. Erst danach gibt es neue Sterne.'; body.appendChild(q);
       if(endUnlocked()){ const rr2=document.createElement('div'); rr2.className='row-end';
         const sb=document.createElement('button'); sb.className='btn'; sb.textContent=endless?'Läuft …':(finaleArm?'Wirklich? Diese Welt endet danach!':'Finale starten'); sb.disabled=!!endless||S.phase!=='day'; sb.onclick=()=>{ if(!finaleArm){ finaleArm=true; renderMenu(); return; } finaleArm=false; startEndless(); };
         const shb=document.createElement('button'); shb.className='btn dark'; shb.textContent='🏆 Rekord teilen'; shb.disabled=best<1; shb.onclick=()=>copyShare(best,null);
@@ -2249,6 +2280,10 @@ function drawSpecials(){
   if(sl('tesla')){ const o=TESLA_O; ctx.fillStyle='#3a3e44'; ctx.fillRect(o.x-6,o.y-6,12,16); ctx.fillStyle='#b8642a'; for(let k=0;k<4;k++) ctx.fillRect(o.x-5,o.y-6-k*5,10,3); ctx.fillStyle='#c0c8d0'; ctx.beginPath(); ctx.arc(o.x,o.y-26,6,0,7); ctx.fill(); }
   if(sl('zaun')){ ctx.strokeStyle='rgba(138,224,255,.6)'; ctx.lineWidth=1.5; for(const yy of [y1+6,y1+12]){ ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke(); } ctx.fillStyle='#5a6068'; for(let x=x0;x<=x1;x+=60) ctx.fillRect(x-2,y1+2,4,14); }
   for(const zp of zaps){ ctx.strokeStyle=`rgba(150,230,255,${Math.min(1,zp.t/0.15)})`; ctx.lineWidth=3; ctx.beginPath(); zp.pts.forEach((pt,k)=>{ if(!k){ ctx.moveTo(pt.x,pt.y); return; } const q=zp.pts[k-1]; ctx.lineTo((pt.x+q.x)/2+(Math.random()*14-7),(pt.y+q.y)/2+(Math.random()*14-7)); ctx.lineTo(pt.x,pt.y); }); ctx.stroke(); }
+  for(const sp of supplies){ const bob=Math.sin(tm*4+sp.x)*3, a=sp.t<3&&Math.sin(tm*12)>0?0.4:1; ctx.globalAlpha=a; shadow(sp.x,sp.y+4,14,5);
+    ctx.fillStyle='#a07a42'; ctx.fillRect(sp.x-12,sp.y-20+bob,24,20); ctx.strokeStyle='#5a4020'; ctx.lineWidth=2; ctx.strokeRect(sp.x-12,sp.y-20+bob,24,20);
+    ctx.fillStyle=sp.k==='rep'?'#9fc45a':sp.k==='ammo'?'#f2c14e':'#e0503a'; ctx.beginPath(); ctx.arc(sp.x,sp.y-10+bob,5,0,7); ctx.fill();
+    ctx.strokeStyle='rgba(242,193,78,.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(sp.x,sp.y-10,22+Math.sin(tm*6)*3,0,7); ctx.stroke(); ctx.globalAlpha=1; }
   if(endless&&cb('fwall')){ for(let x=x0+10;x<x1;x+=26){ const h=6+Math.sin(tm*8+x)*3; ctx.fillStyle='rgba(255,140,40,.8)'; ctx.beginPath(); ctx.moveTo(x-5,y1+30); ctx.quadraticCurveTo(x,y1+30-h*2,x+5,y1+30); ctx.fill(); } }
 }
 function drawArrow(x,y,time){
@@ -2352,12 +2387,13 @@ function hud(dt){
   { const k=skillInfo(), b=$('btnSkill'); b.hidden=!k; if(k){ setText(b,k.text); b.disabled=!k.ready; } }
   $('btnExpo').hidden=!canExpo();
   if(S.phase==='day'){} else if(endless){ const pz=endless.pause>0; $('btnNight').hidden=!pz; $('btnNight').classList.remove('pulse'); if(pz) setText($('btnNight'),dareOk()?'Jetzt ▶ +1 ⚡':'Nächste Welle ▶');
+    { const bz=zombies.find(z=>z.boss&&!z.dead), bb=$('bossBar'); bb.hidden=!bz; if(bz){ setText($('bossName'),'💀 Boss · Welle '+endless.wave+(bz.chargeT>0?' · Ansturm!':'')); $('bossFill').style.width=Math.max(0,bz.hp/bz.max*100)+'%'; } }
     setText($('dayLbl'),endless.wave?(bossNow()?'Bosswelle ':'Welle ')+endless.wave+(endless.pause<=0&&curMod()?' · '+modInfo(curMod()).name:''):'Endlos');
     setText($('dayInfo'),(pz?'Pause '+Math.ceil(endless.pause)+'s':(zombies.length+zSpawnLeft)+' Zombies')+' · Mauer '+Math.max(0,Math.ceil(S.wallHp)));
     $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
   else { $('btnNight').hidden=true; setText($('dayLbl'),(isBossNight(S.day)?'Boss ':'Nacht ')+S.day); setText($('dayInfo'),(zombies.length+zSpawnLeft)+' Zombies · Mauer '+Math.max(0,Math.ceil(S.wallHp))+(G.ammo>=1?' · Mun. '+Math.floor(G.ammo):''));
     $('wallBar').hidden=false; $('wallFill').style.width=Math.max(0,S.wallHp/wallMax()*100)+'%'; }
-  const ct=S.contract, jp=$('jobPill');
+  const ct=endless?null:S.contract, jp=$('jobPill');
   if(ct){ jp.hidden=false; const r=Math.max(0,Math.ceil(ct.t));
     setText($('jobTxt'),`Auftrag <b>${ct.done}/${ct.n}</b> ${GOODS[ct.g].name} · ${Math.floor(r/60)}:${String(r%60).padStart(2,'0')}`+(jobOpen?` · Belohnung <b>$${fmt(ct.reward)}</b>`:''));
     $('jobBar').style.width=Math.round(ct.done/ct.n*100)+'%'; } else jp.hidden=true;
@@ -2694,6 +2730,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3e</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3f</div>
 </body>
 </html>
