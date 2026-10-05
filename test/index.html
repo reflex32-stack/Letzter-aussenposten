@@ -2474,7 +2474,7 @@ function exGenWorld(E){ E.area=G.cur==='oel'?'oel':G.cur==='kraftwerk'?'kraft':'
 function startExpo(){ if(!canExpo()||anyModal()) return; initAudio();
   const mh=100+10*gl('food'), b=gl('bench');
   expo={t:0,real:0,hp:mh,maxHp:mh,lvl:1,xp:0,need:5,kills:0,sk:{},z:[],gems:[],bul:[],fires:[],bolts:[],booms:[],beams:[],items:[],spawnAcc:0,shotT:0,moloT:2,boltT:2,droneT:0.5,roboT:1,crateT:20,
-    boss:null,bossDone:false,pendingUp:0,choosing:false,hitT:0,inv:0,P:{x:EX_W/2,y:EX_H/2,walk:0,face:0},drone:{x:EX_W/2+30,y:EX_H/2-30,walk:0},robo:{x:EX_W/2-40,y:EX_H/2+20,walk:0}};
+    boss:null,bossDone:false,bossKills:0,stage:1,bossAt:EX_BOSS,pendingUp:0,choosing:false,hitT:0,inv:0,P:{x:EX_W/2,y:EX_H/2,walk:0,face:0},drone:{x:EX_W/2+30,y:EX_H/2-30,walk:0},robo:{x:EX_W/2-40,y:EX_H/2+20,walk:0}};
   if(b>=1) expo.sk.saw=b>=3?2:1; if(b>=2) expo.sk.drone=b>=3?2:1;
   { const br=gl('brand'); if(br>=1) expo.sk.molo=br>=3?2:1; const sp=gl('spulen'); if(sp>=1) expo.sk.bolt=sp>=3?2:1; }
   exGenWorld(expo);
@@ -2486,7 +2486,7 @@ function exSpawn(type){ const E=expo, vw=cw/zoom, vh=ch/zoom; let x,y;
   for(let k=0;k<8;k++){ const a=Math.random()*Math.PI*2, r=Math.hypot(vw,vh)/2+40;
     x=Math.max(20,Math.min(EX_W-20,E.P.x+Math.cos(a)*r)); y=Math.max(20,Math.min(EX_H-20,E.P.y+Math.sin(a)*r)); if(exFree(x,y,14)) break; }
   let hp=exHp(E.t), sp=52+Math.random()*10; const z={x,y,walk:Math.random()*6,face:0,atk:0,hit:0,sawCd:0,runner:false,brute:false,boss:false};
-  if(type==='r'){ z.runner=true; hp*=0.6; sp*=1.9; } else if(type==='f'){ z.burner=true; hp*=0.8; sp*=1.4; } else if(type==='b'){ z.brute=true; hp*=4; sp*=0.7; } else if(type==='boss'){ z.boss=true; hp*=60; sp=46; }
+  if(type==='r'){ z.runner=true; hp*=0.6; sp*=1.9; } else if(type==='f'){ z.burner=true; hp*=0.8; sp*=1.4; } else if(type==='b'){ z.brute=true; hp*=4; sp*=0.7; } else if(type==='boss'){ z.boss=true; hp*=60*(1+0.6*(E.stage-1)); sp=46+4*(E.stage-1); }
   z.hp=z.max=hp; z.sp=sp; E.z.push(z); return z; }
 function exNearest(x,y,range){ let best=null, bd=range; for(const z of expo.z){ if(z.dead) continue; const d=Math.hypot(z.x-x,z.y-y); if(d<bd){ bd=d; best=z; } } return best; }
 function exHurt(z,d){ if(z.dead) return; z.hp-=d; z.hit=0.1; if(z.hp<=0){ z.dead=true; const E=expo; E.kills++;
@@ -2513,8 +2513,8 @@ function updateExpo(dt){ const E=expo, P2=E.P; E.t+=dt; E.real+=dt; if(E.hitT>0)
   if(m>0.12){ const sp=185*(1+0.1*exSk('spd')); P2.x+=ix*sp*dt; P2.y+=iy*sp*dt; P2.walk+=dt*10*m; }
   P2.x=Math.max(30,Math.min(EX_W-30,P2.x)); P2.y=Math.max(40,Math.min(EX_H-30,P2.y)); exPush(P2,12);
   // Gegner erzeugen
-  if(E.t<EX_BOSS){ E.spawnAcc+=(1.2+E.t/22)*dt; }
-  else { if(!E.boss){ E.boss=exSpawn('boss'); toast('Der Boss ist da!',2200); beep(80,.8,'sawtooth',.07,-30); } E.spawnAcc+=3*dt; }
+  if(E.t<E.bossAt){ E.spawnAcc+=(1.2+E.t/22)*dt; }
+  else { if(!E.boss){ E.boss=exSpawn('boss'); toast(E.stage>1?'Boss '+E.stage+' ist da – stärker als zuvor!':'Der Boss ist da!',2200); beep(80,.8,'sawtooth',.07,-30); } E.spawnAcc+=(3+E.stage)*dt; }
   while(E.spawnAcc>=1){ E.spawnAcc--; if(E.z.length>=EX_MAX) continue; const r=Math.random(); exSpawn(E.area==='oel'&&E.t>30&&r>0.86?'f':E.t>60&&r<0.2?'r':E.t>120&&r<0.3?'b':'n'); }
   // neue Kisten tauchen auf
   E.crateT-=dt; if(E.crateT<=0){ E.crateT=20; if(E.crates.length<25){ const a=Math.random()*Math.PI*2, r=400+Math.random()*300, x=P2.x+Math.cos(a)*r, y=P2.y+Math.sin(a)*r;
@@ -2591,7 +2591,7 @@ function updateExpo(dt){ const E=expo, P2=E.P; E.t+=dt; E.real+=dt; if(E.hitT>0)
   E.gems=E.gems.filter(g=>!g.got);
   while(E.xp>=E.need){ E.xp-=E.need; E.lvl++; E.need=Math.round(6+E.lvl*E.lvl*0.9); E.pendingUp++; beep(880,.15,'triangle',.05,440); }
   if(E.pendingUp>0&&!E.choosing) exOffer();
-  if(E.bossDone){ finishExpo(true); return; }
+  if(E.bossDone){ E.bossDone=false; E.bossKills++; exCheckpoint(); return; }
   if(E.hp<=0){ finishExpo(false); return; }
 }
 function exOffer(){ const E=expo, pool=EXSK.filter(s=>exSk(s.id)<s.max), pick=[];
@@ -2604,19 +2604,28 @@ function exOffer(){ const E=expo, pool=EXSK.filter(s=>exSk(s.id)<s.max), pick=[]
       E.pendingUp--; E.choosing=false; $('expoUp').hidden=true; beep(660,.12,'triangle',.05,330); };
     r.appendChild(b); }
   $('expoUp').hidden=false; }
+const exLoot=(E,mult)=>Math.round(Math.max(3,S.incRate||0)*60*(E.t/60*0.6+E.kills/300)*mult);
+const exWinMult=n=>1+0.5*n; // 1 Boss: x1,5 · 2 Bosse: x2 · 3 Bosse: x2,5 …
+function exCheckpoint(){ const E=expo; E.choosing=true; const n=E.bossKills, now=exLoot(E,exWinMult(n)), half=exLoot(E,0.5);
+  $('expoUpT').textContent='Boss '+n+' besiegt! Checkpoint'; const r=$('expoUpR'); r.innerHTML='';
+  const b1=document.createElement('button'); b1.innerHTML='<b>🏠 Zurück zur Basis</b>Beute sichern: $'+fmt(now)+' (×'+exWinMult(n).toString().replace('.',',')+')';
+  b1.onclick=()=>{ initAudio(); E.choosing=false; $('expoUp').hidden=true; finishExpo(true); };
+  const b2=document.createElement('button'); b2.innerHTML='<b>⚔️ Weiterkämpfen</b>Nächster Boss in 3:00, viel stärker. Bonus steigt auf ×'+exWinMult(n+1).toString().replace('.',',')+'. Stirbst du, bleibt nur die Hälfte ($'+fmt(half)+' Stand jetzt).';
+  b2.onclick=()=>{ initAudio(); E.choosing=false; $('expoUp').hidden=true; E.stage++; E.boss=null; E.bossAt=E.t+180; E.hp=Math.min(E.maxHp,E.hp+E.maxHp*0.3); toast('Weiter geht’s! +30 % Leben. Nächster Boss in 3 Minuten.',2400); beep(660,.2,'triangle',.05,330); };
+  r.append(b1,b2); $('expoUp').hidden=false; beep(880,.4,'triangle',.06,440); }
 function exitExpo(){ if(!expo) return; finishExpo(false,true); }
 function finishExpo(win,quit){ const E=expo; if(!E) return;
   const base=Math.max(3,S.incRate||0), mins=E.t/60;
-  let gain=Math.round(base*60*(mins*0.6+E.kills/300)*(win?1.5:0.5));
+  let gain=exLoot(E,win?exWinMult(E.bossKills):0.5);
   const baseInc=Math.round((S.incRate||0)*E.real);
   S.money+=gain+baseInc; S.lifetime+=gain+baseInc;
   const rec=G.exRec||(G.exRec={t:0,kills:0,wins:0}); const newRec=E.t>rec.t;
-  if(newRec) rec.t=E.t; if(E.kills>rec.kills) rec.kills=E.kills; if(win) rec.wins++;
+  if(newRec) rec.t=E.t; if(E.kills>rec.kills) rec.kills=E.kills; if(win) rec.wins++; if(E.bossKills>(rec.bosses||0)) rec.bosses=E.bossKills;
   expo=null; document.body.classList.remove('expoOn'); $('expoHud').hidden=true; $('expoUp').hidden=true; resetRate(); save();
   const mm=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   $('eTitle').textContent=win?'Expedition geschafft!':quit?'Expedition abgebrochen':'Expedition gescheitert';
-  $('eText').innerHTML=`Überlebt: <b style="color:var(--bone)">${mm(E.t)}</b> · Stufe ${E.lvl} · ${E.kills} Zombies${win?' · <b style="color:var(--gold)">Boss besiegt!</b>':''}<br><br>`+
-    `Beute: <b style="color:var(--gold)">+$${fmt(gain)}</b>${win?' (+50 % Boss-Bonus)':' (halbe Beute)'}<br>`+
+  $('eText').innerHTML=`Überlebt: <b style="color:var(--bone)">${mm(E.t)}</b> · Stufe ${E.lvl} · ${E.kills} Zombies${E.bossKills?' · <b style="color:var(--gold)">'+E.bossKills+(E.bossKills>1?' Bosse':' Boss')+' besiegt!</b>':''}<br><br>`+
+    `Beute: <b style="color:var(--gold)">+$${fmt(gain)}</b>${win?' (Boss-Bonus ×'+exWinMult(E.bossKills).toString().replace('.',',')+')':' (halbe Beute)'}<br>`+
     (baseInc>0?`Deine Basis hat währenddessen <b style="color:var(--gold)">$${fmt(baseInc)}</b> verdient.<br>`:'')+
     `<br>Rekord: ${mm(rec.t)} · ${rec.kills} Zombies${newRec?' · <b style="color:var(--ok)">neuer Rekord!</b>':''}<br><span style="font-size:12.5px;color:var(--muted)">Tipp: Unter Menü → Ausrüstung rüstest du deine Expeditionen mit allen Maps aus.</span>`;
   $('eShare').hidden=true; $('eShareTxt').hidden=true; $('eOk').textContent='Zurück zur Basis'; $('eOk').onclick=()=>{ initAudio(); $('endres').hidden=true; $('eShare').hidden=false; };
@@ -2685,8 +2694,8 @@ function drawExpo(time){ const E=expo, P2=E.P, vw=cw/zoom, vh=ch/zoom;
   ctx.setTransform(1,0,0,1,0,0);
   if(E.hitT>0){ const g=ctx.createRadialGradient(cv.width/2,cv.height/2,Math.min(cv.width,cv.height)*0.3,cv.width/2,cv.height/2,Math.max(cv.width,cv.height)*0.7);
     g.addColorStop(0,'rgba(200,30,20,0)'); g.addColorStop(1,'rgba(200,30,20,'+(0.45*Math.min(1,E.hitT/0.25))+')'); ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height); } }
-function hudExpo(){ const E=expo; if(!E) return; const t=E.t, left=Math.max(0,EX_BOSS-t);
-  setText($('exTime'),t<EX_BOSS?'⏱ '+Math.floor(left/60)+':'+String(Math.floor(left%60)).padStart(2,'0'):'💀 BOSS!');
+function hudExpo(){ const E=expo; if(!E) return; const t=E.t, left=Math.max(0,E.bossAt-t);
+  setText($('exTime'),(t<E.bossAt?'⏱ '+Math.floor(left/60)+':'+String(Math.floor(left%60)).padStart(2,'0'):'💀 BOSS'+(E.stage>1?' '+E.stage:'')+'!')+(E.bossKills?' · ★'+E.bossKills:''));
   setText($('exInfo'),'❤ '+Math.max(0,Math.ceil(E.hp))+' · Lv '+E.lvl+' · 💀 '+E.kills);
   $('exHp').style.width=Math.max(0,E.hp/E.maxHp*100)+'%'; $('exXp').style.width=Math.min(100,E.xp/E.need*100)+'%'; }
 function gearRows(body){ if(Object.keys(G.maps).length<2) return;
@@ -2711,7 +2720,10 @@ for(const id in G.maps){ const m=G.maps[id]; if(m.incRate==null) m.incRate=0; }
 if(G.finale&&G.maps[G.finale.map||'labor']){ const d0=G.finale.done||0, fm=G.finale.map||'labor'; setTimeout(()=>{ $('news').hidden=true; $('welcome').hidden=true; if(G.cur!==fm){ G.cur=fm; } const f=G.finale, pend=!!f.pend, hasB=f.bank!=null; finishWorld(d0,f.dare||0,hasB?(f.bank||0)+(pend?(f.pot||0):0):Math.floor(d0/10),hasB&&!pend?(f.pot||0):0); toast('Das Finale wurde unterbrochen und ist ausgewertet.',3500); },600); }
 if(!G.finale&&G.maps.labor&&G.maps.labor.flags.mapDone&&!G.maps.kraftwerk) setTimeout(()=>toast('Neu: Ölfeld und Kraftwerk! Das Finale wartet jetzt am Ende des Kraftwerks.',4200),2500);
 setInterval(save,5000);
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
+let hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ hiddenAt=Date.now(); save(); return; }
+  if(!hiddenAt) return; const el=(Date.now()-hiddenAt)/1000; hiddenAt=0;
+  if(el>=60&&!expo&&!endless&&!anyModal()&&$('welcome').hidden) offline(el); });
 addEventListener('pagehide',save);
 
 let lt=performance.now();
@@ -2730,6 +2742,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3f</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3g</div>
 </body>
 </html>
