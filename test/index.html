@@ -1800,8 +1800,16 @@ function hardGameOver(){
 // ---------- Was ist neu ----------
 const DISCORD_URL='https://discord.gg/KZQBr26Ef2';
 function openDiscord(){ initAudio(); const a=document.createElement('a'); a.href=DISCORD_URL; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-const NEWS_VER='2.0';
+const NEWS_VER='3.0';
 const NEWS_LOG={
+ '3.0':[
+  ['🗺️','Zwei neue Maps: Ölfeld (Map 6) und Kraftwerk (Map 7) mit neuen Waren, neuen Zombies (Brenner und Funker) und je zwei Spezial-Aufrüstungen.'],
+  ['🎒','Expeditionen: Ab Map 2 tagsüber oben „🗺️ Expedition“ antippen. Überlebe Horden, wähle Fähigkeiten, besiege Bosse – nach jedem Boss entscheidest du: Beute sichern oder weiterkämpfen. Ausrüstung dafür kaufst du in jeder Map (Menü → Ausrüstung).'],
+  ['🏁','Das Finale ist ins Kraftwerk umgezogen und viel schneller: Nachschub-Kisten, ein starker Boss mit Fähigkeiten und alle 10 Wellen ein Checkpoint, an dem du deine Sterne sicherst oder weiterkämpfst.'],
+  ['🃏','Taktik-Karten nach jedem Boss und angekündigte Wellen-Eigenschaften (Nebel, Renner, Riesen …) machen jedes Finale anders.'],
+  ['⭐','Mehr Sterne pro Durchlauf (2/3/4 je nach Schwierigkeit), alle Einnahmen +18 % und auf „Schwer“ +25 % Einnahmen.'],
+  ['🛡️','Wachen-Training gilt jetzt pro Map – deine bisherige Stufe bleibt auf allen deinen Maps erhalten. Offline-Erträge gibt es jetzt auch, wenn du die App nur wieder öffnest.'],
+ ],
  '2.0':[
   ['🛡️','Spezial-Aufrüstungen: Jede Map hat zwei eigene, z. B. Wachhund, Heißes Öl, Stahlmauer oder Laser-Turm (Menü → Ausrüstung → „Spezial“). Sprengladung und Energieschild löst du nachts per Knopf aus.'],
   ['🏆','Das Finale: Sind alle Labor-Ziele erfüllt, startest du unter „Ziele“ die Endlos-Verteidigung. Welle um Welle, bis die Mauer fällt – dann endet diese Welt und eine neue beginnt.'],
@@ -2742,6 +2750,6 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
 })();
 </script>
 
-<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v2.3g</div>
+<div style="position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:30;background:#e0503a;color:#fff;font:700 11px system-ui,sans-serif;padding:3px 7px;border-radius:6px;pointer-events:none">TEST v3.0</div>
 </body>
 </html>
