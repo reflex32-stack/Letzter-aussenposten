@@ -811,7 +811,7 @@ let mines=[], globs=[];
 let spawnT=1, zSpawnLeft=0, zSpawnT=0, repairing=false, mechWork=false;
 let wallAttackers=0;
 let endless=null, finaleArm=false; // läuft gerade die Endlos-Verteidigung?
-const finDay=t=>10+t/20+Math.pow(t/200,2); // Finale: startet auf Stärke von Nacht 10 und wird immer schneller stärker
+const finDay=t=>10+t/20+Math.pow(t/170,2.3); // Finale: startet auf Stärke von Nacht 10 und wird immer schneller stärker
 const ND=()=>endless?finDay(endless.t):S.day, bossNow=()=>endless?false:isBossNight(S.day);
 const mmss=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 let supplies=[], specT={oil:0,cata:0,gun:0,laser:0,flame:0,tesla:0,zaun:0,over:0}, flameA=null, zaps=[], blackT=0, blackOut=0, pots=[], blastUsed=false, shieldT=0, shieldCd=0;
@@ -1290,7 +1290,8 @@ function shoot(x,y,range,dmg,from){
 }
 function hurt(z,d){ if(z.dead) return; z.hp-=d*cardMul(z); z.hit=0.12; if(z.hp<=0) killReward(z); }
 function segDist(px,py,ax,ay,bx,by){ const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy; let t=l?((px-ax)*dx+(py-ay)*dy)/l:0; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-ax-t*dx,py-ay-t*dy); }
-const zRef=()=>zHp(ND())*(1+0.25*(MD.num-1)); // Leben eines normalen Zombies hier und heute
+// Leben eines normalen Zombies hier und heute – Spezial-Abwehr skaliert damit. Im Finale wächst der Bezug nur langsam (1 Nacht pro Minute), sonst wären Spezial-Türme unbesiegbar
+const zRef=()=>zHp(endless?Math.min(ND(),10+endless.t/60):ND())*(1+0.25*(MD.num-1));
 function specSlow(z){ const y1=COMP.y1; let m=1;
   if(sl('hay')&&z.y>y1+110&&z.y<y1+200) m*=1-Math.min(0.5,0.06*sl('hay'));
   if(sl('lore')&&z.y<y1+100) m*=1-Math.min(0.6,0.08*sl('lore'));
@@ -2780,7 +2781,7 @@ window.__game={get S(){return S},get G(){return G},P,get INSTBY(){return INSTBY}
   <span>Neue Version verfügbar</span><button id="updBtn" style="border:0;border-radius:8px;padding:8px 12px;background:#241c0e;color:#f2c14e;font:700 14px 'Chakra Petch',system-ui,sans-serif">Jetzt aktualisieren</button>
 </div>
 <script>
-window.APP_VERSION='3.1.0';
+window.APP_VERSION='3.1.1';
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   let waiting=null, reloading=false, regRef=null;
   const bar=document.getElementById('updBar');
